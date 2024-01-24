@@ -186,7 +186,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         # print('end')
     print('\n')
     train_loss = running_loss / len(data_loader)
-    train_accuracy = 100. * correct / total
+    train_accuracy = correct / total
     lid_mean, lid_std = get_lids_random_batch(logits_list)
     return train_loss, train_accuracy, lid_mean, lid_std
 
@@ -211,7 +211,7 @@ def val_epoch(model, data_loader, criterion, device):
             correct += predicted.eq(targets.data).cpu().sum()
 
     val_loss = running_loss / len(data_loader)
-    val_accuracy = 100. * correct / total
+    val_accuracy = correct / total
     lid_mean, lid_std = get_lids_random_batch(logits_list)
     return val_loss, val_accuracy, lid_mean, lid_std
 
