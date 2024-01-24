@@ -154,7 +154,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         outputs, logits = model(inputs)
         logits_list.append(logits)
         loss = criterion(outputs, targets)
-        print(f"{batch_idx}: loss:", loss.item())
+        # print(f"{batch_idx}: loss:", loss.item())
         loss.backward()
         optimizer.step()
 
@@ -166,7 +166,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         # 更新进度条显示的信息
         progress_bar.set_description(f"Loss: {loss.item():.4f}")
         # print('end')
-
+    print('\n')
     train_loss = running_loss / len(data_loader)
     train_accuracy = 100. * correct / total
     lid_mean, lid_std = get_lids_random_batch(logits_list)
@@ -240,8 +240,9 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
 def main(args):
     # 设置mlflow
-    mlflow.set_tracking_uri("http://localhost:5002")
+    # mlflow.set_tracking_uri("http://localhost:5002")
     mlflow.set_experiment("LID")
+    mlflow.set_tracking_uri('file:./mlruns')
     # 获取数据集
     train_loader, test_loader = load_data(path='D:/gkw/data/classification', dataset_name=args.dataset,
                                           max_data=args.max_data, batch_size=args.batch_size,
@@ -282,10 +283,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch ResNet with LID')
     parser.add_argument('--dataset', default='MNIST', type=str, help='dataset = [MNIST/CIFAR10/CIFAR100/SVHN]')
     parser.add_argument('--num_classes', default=10, type=int, help='number of classes')
-    parser.add_argument('--max_data', default=1024, type=int, help='max number of data')
+    parser.add_argument('--max_data', default=128, type=int, help='max number of data')
     parser.add_argument('--noise_ratio', default=0.0, type=float, help='corruption ratio, should be less than 1')
     parser.add_argument('--noise_type', default='sym', type=str, help='[sym/asym]')
-    parser.add_argument('--batch_size', default=128, type=int, help='batch size')
+    parser.add_argument('--batch_size', default=8, type=int, help='batch size')
     parser.add_argument('--epochs', default=200, type=int, help='number of total epochs to run')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
