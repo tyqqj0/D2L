@@ -75,6 +75,7 @@ def mle_batch(data, batch, k):
     """
     lid of a batch of query points X.
     numpy implementation.
+    LID(X, Xs) = - k / sum_{i=1}^{k} log (d(x, x_i) / d(x, x_k+1)
 
     :param data: 
     :param batch: 
