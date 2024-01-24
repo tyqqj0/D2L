@@ -73,9 +73,15 @@ class ResNet18FeatureExtractor(nn.Module):
     def __init__(self, pretrained=False, num_classes=10):
         super(ResNet18FeatureExtractor, self).__init__()
         # 使用ResNet18模型，设置输入通道数为1，输出类别数为10
-        self.resnet18 = models.resnet18(pretrained=pretrained, num_classes=num_classes, in_channels=1)
-        # self.resnet18.fc = nn.Identity()  # 将最后的全连接层替换为一个恒等映射
-        # self.fc = nn.Linear(self.resnet18.fc.in_features, num_classes)
+        self.resnet18 = models.resnet18(pretrained=pretrained, num_classes=num_classes)
+        # 修改第一个卷积层为单通道输入
+        self.resnet18.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+        # 如果你需要使用预训练权重，你可能需要手动复制权重从3通道到1通道
+        # 这里是一个简单的平均权重的方法，如果你有预训练的权重，那么取消下面两行的注释
+        # if pretrained:
+        #     conv1_weight = self.resnet18.conv1.weight.data.mean(dim=1, keepdim=True)
+        #     self.resnet18.conv1.weight.data = conv1_weight
 
     def forward(self, x):
         # 获取softmax之前的特征
