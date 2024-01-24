@@ -161,6 +161,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     correct = 0
     total = 0
     logits_list = []
+    print('\n')
     progress_bar = tqdm(enumerate(data_loader), total=len(data_loader))
     for batch_idx, (inputs, targets) in progress_bar:
         # print('start')
@@ -301,9 +302,9 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', default='MNIST', type=str, help='dataset = [MNIST/CIFAR10/CIFAR100/SVHN]')
     parser.add_argument('--num_classes', default=10, type=int, help='number of classes')
     parser.add_argument('--max_data', default=256, type=int, help='max number of data')
-    parser.add_argument('--noise_ratio', default=0.5, type=float, help='corruption ratio, should be less than 1')
+    parser.add_argument('--noise_ratio', default=0.85, type=float, help='corruption ratio, should be less than 1')
     parser.add_argument('--noise_type', default='sym', type=str, help='[sym/asym]')
-    parser.add_argument('--batch_size', default=15, type=int, help='batch size')
+    parser.add_argument('--batch_size', default=16, type=int, help='batch size')
     parser.add_argument('--epochs', default=200, type=int, help='number of total epochs to run')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
