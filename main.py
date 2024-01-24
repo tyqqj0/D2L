@@ -250,7 +250,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         'weight_decay': args.weight_decay
     })
     # MLflow记录模型
-    if (epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs:
+    if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
         torch.save(model.state_dict(), f'model_epoch_{epoch + 1}.pth')
         mlflow.log_artifact(f'model_epoch_{epoch + 1}.pth')
 
@@ -310,6 +310,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', default=1e-4, type=float, help='weight decay (default: 1e-4)')
     parser.add_argument('--k', default=50, type=int, help='number of nearest neighbors')
     parser.add_argument('--model', default='resnet18', type=str, help='model type')
+    parser.add_argument('--save_interval', default=-1, type=int, help='save interval')
     parser.add_argument('--exp_name', default='train_LID', type=str, help='exp name')
     parser.add_argument('--run_name', default='run_1', type=str, help='run name')
     parser.add_argument('--gpu', default='0', type=str, help='gpu device ids for CUDA_VISIBLE_DEVICES')
