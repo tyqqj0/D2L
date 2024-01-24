@@ -5,18 +5,20 @@
 # @
 # @Aim
 
-import argparse
 import os
+import argparse
 
-import mlflow
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
+import torchvision
 from torchvision import datasets, transforms
 from torchvision import models
+import numpy as np
+from tqdm import tqdm
 
+import mlflow
 from LID import mle_batch_np
 
 
@@ -46,7 +48,7 @@ class NoisyMNIST(Dataset):
         return self.mnist_dataset[idx]
 
 
-def load_data(path='D:/gkw/data/classification', dataset_name='MNIST', batch_size=128, noise_ratio=0.0,
+def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MNIST', batch_size=128, noise_ratio=0.0,
               noise_type='sym'):
     if dataset_name == 'MNIST':
         transform = transforms.Compose([
@@ -58,7 +60,10 @@ def load_data(path='D:/gkw/data/classification', dataset_name='MNIST', batch_siz
         mnist_train = datasets.MNIST(root=path, train=True, transform=transform, download=True)
         mnist_test = datasets.MNIST(root=path, train=False, transform=transform)
         # print(mnist_test.head())
-
+        # 如果设置了max_data，则限制数据集的大小
+        if max_data is not None:
+            mnist_train = Subset(mnist_train, range(min(max_data, len(mnist_train))))
+            mnist_test = Subset(mnist_test, range(min(max_data, len(mnist_test))))
         # 应用噪声
         train_dataset = NoisyMNIST(mnist_train, noise_ratio=noise_ratio, noise_type=noise_type)
         test_dataset = NoisyMNIST(mnist_test)  # 测试集通常不添加噪声
@@ -139,8 +144,8 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     correct = 0
     total = 0
     logits_list = []
-
-    for batch_idx, (inputs, targets) in enumerate(data_loader):
+    progress_bar = tqdm(enumerate(data_loader), total=len(data_loader))
+    for batch_idx, (inputs, targets) in progress_bar:
         # print('start')
         # print(inputs.shape)
         inputs, targets = inputs.to(device), targets.to(device)
@@ -157,6 +162,9 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
+
+        # 更新进度条显示的信息
+        progress_bar.set_description(f"Loss: {loss.item():.4f}")
         # print('end')
 
     train_loss = running_loss / len(data_loader)
@@ -236,8 +244,8 @@ def main(args):
     mlflow.set_experiment("LID")
     # 获取数据集
     train_loader, test_loader = load_data(path='D:/gkw/data/classification', dataset_name=args.dataset,
-                                          batch_size=args.batch_size, noise_ratio=args.noise_ratio,
-                                          noise_type=args.noise_type)
+                                          max_data=args.max_data, batch_size=args.batch_size,
+                                          noise_ratio=args.noise_ratio, noise_type=args.noise_type)
     # if torch.cuda.is_available():
     #     train_loader = train_loader.cuda()
     #     test_loader = test_loader.cuda()
@@ -274,6 +282,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch ResNet with LID')
     parser.add_argument('--dataset', default='MNIST', type=str, help='dataset = [MNIST/CIFAR10/CIFAR100/SVHN]')
     parser.add_argument('--num_classes', default=10, type=int, help='number of classes')
+    parser.add_argument('--max_data', default=1024, type=int, help='max number of data')
     parser.add_argument('--noise_ratio', default=0.0, type=float, help='corruption ratio, should be less than 1')
     parser.add_argument('--noise_type', default='sym', type=str, help='[sym/asym]')
     parser.add_argument('--batch_size', default=128, type=int, help='batch size')
