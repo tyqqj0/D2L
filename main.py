@@ -72,10 +72,10 @@ def load_data(path='D:/gkw/data/classification', dataset_name='MNIST', batch_siz
 class ResNet18FeatureExtractor(nn.Module):
     def __init__(self, pretrained=False, num_classes=10):
         super(ResNet18FeatureExtractor, self).__init__()
-        # 使用预训练的ResNet18模型，但不包括最后的全连接层
-        self.resnet18 = models.resnet18(pretrained=pretrained)
-        self.resnet18.fc = nn.Identity()  # 将最后的全连接层替换为一个恒等映射
-        self.fc = nn.Linear(self.resnet18.fc.in_features, num_classes)
+        # 使用ResNet18模型，设置输入通道数为1，输出类别数为10
+        self.resnet18 = models.resnet18(pretrained=pretrained, num_classes=num_classes, in_channels=1)
+        # self.resnet18.fc = nn.Identity()  # 将最后的全连接层替换为一个恒等映射
+        # self.fc = nn.Linear(self.resnet18.fc.in_features, num_classes)
 
     def forward(self, x):
         # 获取softmax之前的特征
