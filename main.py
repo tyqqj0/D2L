@@ -259,7 +259,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 def main(args):
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
-    mlflow.set_experiment("LID")
+    mlflow.set_experiment(args.exp_name)
     mlflow.set_tracking_uri('file:./mlruns')
     # 获取数据集
     train_loader, test_loader = load_data(path='D:/gkw/data/classification', dataset_name=args.dataset,
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', default='MNIST', type=str, help='dataset = [MNIST/CIFAR10/CIFAR100/SVHN]')
     parser.add_argument('--num_classes', default=10, type=int, help='number of classes')
     parser.add_argument('--max_data', default=256, type=int, help='max number of data')
-    parser.add_argument('--noise_ratio', default=0.85, type=float, help='corruption ratio, should be less than 1')
+    parser.add_argument('--noise_ratio', default=0.75, type=float, help='corruption ratio, should be less than 1')
     parser.add_argument('--noise_type', default='sym', type=str, help='[sym/asym]')
     parser.add_argument('--batch_size', default=16, type=int, help='batch size')
     parser.add_argument('--epochs', default=200, type=int, help='number of total epochs to run')
@@ -313,7 +313,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', default='resnet18', type=str, help='model type')
     parser.add_argument('--save_interval', default=-1, type=int, help='save interval')
     parser.add_argument('--exp_name', default='train_LID', type=str, help='exp name')
-    parser.add_argument('--run_name', default='run_1', type=str, help='run name')
+    parser.add_argument('--run_name', default='run_3', type=str, help='run name')
     parser.add_argument('--gpu', default='0', type=str, help='gpu device ids for CUDA_VISIBLE_DEVICES')
 
     args = parser.parse_args()
