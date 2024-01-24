@@ -5,15 +5,14 @@ https://github.com/raghakot/keras-resnet
 import sys
 
 import numpy as np
-
-from keras.models import Model
-from keras.layers import Input, Activation, merge, Dense, Flatten
-from keras.layers.convolutional import Conv2D, MaxPooling2D, ZeroPadding2D
-from keras.layers.convolutional import AveragePooling2D
-from keras.layers.normalization import BatchNormalization
-from keras.regularizers import l2
-from keras.layers.merge import add
 from keras import backend as K
+from keras.layers import Input, Activation, Dense, Flatten
+from keras.layers.convolutional import AveragePooling2D
+from keras.layers.convolutional import Conv2D
+from keras.layers.merge import add
+from keras.layers.normalization import BatchNormalization
+from keras.models import Model
+from keras.regularizers import l2
 
 sys.setrecursionlimit(10000)
 

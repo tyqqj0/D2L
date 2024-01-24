@@ -1,6 +1,6 @@
 import numpy as np
 import keras.backend as K
-from keras.utils import np_utils
+# from keras.utils import np_utils
 from keras.callbacks import Callback, LearningRateScheduler
 from keras.optimizers import SGD
 from util import get_lids_random_batch

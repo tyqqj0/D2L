@@ -1,18 +1,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os
-import multiprocessing as mp
-from subprocess import call
-import warnings
-import numpy as np
-from numpy.testing import assert_array_almost_equal
-from sklearn.preprocessing import MinMaxScaler
 import keras.backend as K
-from scipy.spatial.distance import pdist, cdist, squareform
-from keras.callbacks import ModelCheckpoint, Callback
-from keras.callbacks import LearningRateScheduler
+import numpy as np
 import tensorflow as tf
+from keras.callbacks import LearningRateScheduler
+from numpy.testing import assert_array_almost_equal
+from scipy.spatial.distance import cdist
 
 # Set random seed
 np.random.seed(123)

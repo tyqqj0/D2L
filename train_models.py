@@ -1,19 +1,19 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os
-import keras.backend as K
 import argparse
+import os
 
-from keras.preprocessing.image import ImageDataGenerator
-from keras.optimizers import SGD
+import keras.backend as K
 from keras.callbacks import ModelCheckpoint
+from keras.optimizers import SGD
+from keras.preprocessing.image import ImageDataGenerator
 
-from util import get_lr_scheduler, uniform_noise_model_P
-from datasets import get_data, validatation_split
-from models import get_model
-from loss import cross_entropy, boot_soft, boot_hard, forward, backward, lid_paced_loss
 from callback_util import D2LCallback, LoggerCallback
+from datasets import get_data
+from loss import cross_entropy, boot_soft, boot_hard, forward, backward, lid_paced_loss
+from models import get_model
+from util import get_lr_scheduler, uniform_noise_model_P
 
 D2L = {'mnist': {'init_epoch': 5, 'epoch_win': 5}, 'svhn': {'init_epoch': 20, 'epoch_win': 5},
        'cifar-10': {'init_epoch': 40, 'epoch_win': 5}, 'cifar-100': {'init_epoch': 60, 'epoch_win': 5}}
@@ -24,6 +24,7 @@ for folder in folders:
     path = os.path.join('./', folder)
     if not os.path.exists(path):
         os.makedirs(path)
+
 
 def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ratio=0):
     """
@@ -53,11 +54,11 @@ def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ra
     if dataset == 'cifar-100':
         optimizer = SGD(lr=0.1, decay=5e-3, momentum=0.9)
     else:
-        optimizer = SGD(lr=0.1, decay=1e-4, momentum=0.9)
+        optimizer = SGD(learning_rate=0.1, momentum=0.9)
 
     # for backward, forward loss
     # suppose the model knows noise ratio
-    P = uniform_noise_model_P(num_classes, noise_ratio/100.)
+    P = uniform_noise_model_P(num_classes, noise_ratio / 100.)
     # create loss
     if model_name == 'forward':
         P = uniform_noise_model_P(num_classes, noise_ratio / 100.)
@@ -90,11 +91,11 @@ def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ra
         init_epoch = D2L[dataset]['init_epoch']
         epoch_win = D2L[dataset]['epoch_win']
         d2l_learning = D2LCallback(model, X_train, y_train,
-                                            dataset, noise_ratio,
-                                            epochs=epochs,
-                                            pace_type=model_name,
-                                            init_epoch=init_epoch,
-                                            epoch_win=epoch_win)
+                                   dataset, noise_ratio,
+                                   epochs=epochs,
+                                   pace_type=model_name,
+                                   init_epoch=init_epoch,
+                                   epoch_win=epoch_win)
 
         callbacks.append(d2l_learning)
 
@@ -103,7 +104,7 @@ def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ra
                                       verbose=0,
                                       save_best_only=False,
                                       save_weights_only=True,
-                                      period=1)
+                                      save_freq=1)
         callbacks.append(cp_callback)
 
     else:
@@ -112,7 +113,7 @@ def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ra
                                       verbose=0,
                                       save_best_only=False,
                                       save_weights_only=True,
-                                      period=epochs)
+                                      save_freq=epochs)
         callbacks.append(cp_callback)
 
     # learning rate scheduler if use sgd
@@ -141,12 +142,13 @@ def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ra
     datagen.fit(X_train)
 
     # train model
-    model.fit_generator(datagen.flow(X_train, y_train, batch_size=batch_size),
-                        steps_per_epoch=len(X_train) / batch_size, epochs=epochs,
-                        validation_data=(X_test, y_test),
-                        verbose=1,
-                        callbacks=callbacks
-                        )
+    model.fit(datagen.flow(X_train, y_train, batch_size=batch_size),
+              steps_per_epoch=len(X_train) / batch_size, epochs=epochs,
+              validation_data=(X_test, y_test),
+              verbose=1,
+              callbacks=callbacks
+              )
+
 
 def main(args):
     assert args.dataset in ['mnist', 'svhn', 'cifar-10', 'cifar-100'], \
@@ -154,6 +156,7 @@ def main(args):
     assert args.model_name in ['ce', 'forward', 'backward', 'boot_hard', 'boot_soft', 'd2l'], \
         "dataset parameter must be either 'ce', 'forward', 'backward', 'boot_hard', 'boot_soft', 'd2l'"
     train(args.dataset, args.model_name, args.batch_size, args.epochs, args.noise_ratio)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -188,12 +191,12 @@ if __name__ == "__main__":
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-#     args = parser.parse_args()
-#     main(args)
+    #     args = parser.parse_args()
+    #     main(args)
 
     args = parser.parse_args(['-d', 'cifar-10', '-m', 'd2l',
-                                      '-e', '120', '-b', '128',
-                                      '-r', '60'])
+                              '-e', '120', '-b', '128',
+                              '-r', '60'])
     main(args)
 
     K.clear_session()

@@ -1,9 +1,10 @@
-import numpy as np
 import keras.backend as K
+from keras.layers import Input, Conv2D, Dense, MaxPooling2D, Flatten, Activation, BatchNormalization
 from keras.models import Model
 from keras.regularizers import l2
-from keras.layers import Input, Conv2D, Dense, MaxPooling2D, Flatten, Activation, BatchNormalization
-from resnet import cifar100_resnet
+
+
+# from resnet import cifar100_resnet
 
 def get_model(dataset='mnist', input_tensor=None, input_shape=None, num_classes=10):
     """
@@ -122,6 +123,7 @@ def get_model(dataset='mnist', input_tensor=None, input_shape=None, num_classes=
 
     elif dataset == 'cifar-100':
         # resnet
-        model = cifar100_resnet(depth=7, num_classes=num_classes)
+        # model = cifar100_resnet(depth=7, num_classes=num_classes)
+        pass
 
     return model

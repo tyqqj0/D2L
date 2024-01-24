@@ -1,6 +1,6 @@
 import numpy as np
-from keras import backend as K
 import tensorflow as tf
+from keras import backend as K
 
 
 def symmetric_cross_entropy(alpha, beta):

@@ -4,8 +4,9 @@ Code from Devansh Arpit
 Adapted by Xingjun Ma to this tensorflow version.
 """
 
-import numpy as np
 import keras.backend as K
+import numpy as np
+
 
 class lass(object):
     def __init__(self, x, y_pred, y_target, a=0.25/255., b=0.2/255., r=0.3/255., iter_max=100, clip_min=-np.inf, clip_max=np.inf):

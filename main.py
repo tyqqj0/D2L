@@ -5,19 +5,18 @@
 # @
 # @Aim
 
-import os
 import argparse
+import os
 
+import mlflow
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
-import torchvision
 from torchvision import datasets, transforms
 from torchvision import models
-import numpy as np
 
-import mlflow
 from LID import mle_batch_np
 
 
@@ -58,6 +57,7 @@ def load_data(path='D:/gkw/data/classification', dataset_name='MNIST', batch_siz
         # 原始MNIST数据集
         mnist_train = datasets.MNIST(root=path, train=True, transform=transform, download=True)
         mnist_test = datasets.MNIST(root=path, train=False, transform=transform)
+        # print(mnist_test.head())
 
         # 应用噪声
         train_dataset = NoisyMNIST(mnist_train, noise_ratio=noise_ratio, noise_type=noise_type)
@@ -79,15 +79,28 @@ class ResNet18FeatureExtractor(nn.Module):
 
         # 如果你需要使用预训练权重，你可能需要手动复制权重从3通道到1通道
         # 这里是一个简单的平均权重的方法，如果你有预训练的权重，那么取消下面两行的注释
-        # if pretrained:
-        #     conv1_weight = self.resnet18.conv1.weight.data.mean(dim=1, keepdim=True)
-        #     self.resnet18.conv1.weight.data = conv1_weight
+        if pretrained:
+            conv1_weight = self.resnet18.conv1.weight.data.mean(dim=1, keepdim=True)
+            self.resnet18.conv1.weight.data = conv1_weight
 
     def forward(self, x):
         # 获取softmax之前的特征
-        features = self.resnet18(x)
-        # 通过新的全连接层得到最终的输出
-        output = self.fc(features)
+        # Use ResNet18 up to the second-to-last layer to get the features
+        x = self.resnet18.conv1(x)
+        x = self.resnet18.bn1(x)
+        x = self.resnet18.relu(x)
+        x = self.resnet18.maxpool(x)
+
+        x = self.resnet18.layer1(x)
+        x = self.resnet18.layer2(x)
+        x = self.resnet18.layer3(x)
+        x = self.resnet18.layer4(x)
+
+        x = self.resnet18.avgpool(x)
+        features = torch.flatten(x, 1)  # Flatten the features
+
+        # Pass the features through the new fully connected layer
+        output = self.resnet18.fc(features)  # Make sure new_fc is defined in __init__ and has the correct in_features
         return output, features
 
 
@@ -107,18 +120,12 @@ def text_in_box(text, length=65, center=True):
     return box
 
 
-def get_lids_random_batch(model, dataloader, k=20):
+def get_lids_random_batch(batchs, k=20):
     lids = []
 
-    for X_batch in dataloader:
-        if model is None:
-            # Maximum likelihood estimation of local intrinsic dimensionality (LID)
-            lid_batch = mle_batch_np(X_batch, X_batch, k=k)
-        else:
-            # Get deep representations
-            X_act = model(X_batch)  # Assuming the model is a PyTorch model
-            # Maximum likelihood estimation of local intrinsic dimensionality (LID)
-            lid_batch = mle_batch_np(X_act, X_act, k=k)
+    for X_batch in batchs:
+        X_batch = X_batch.cpu().detach().numpy()
+        lid_batch = mle_batch_np(X_batch, X_batch, k=k)
 
         lids.extend(lid_batch)
 
@@ -134,13 +141,15 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     logits_list = []
 
     for batch_idx, (inputs, targets) in enumerate(data_loader):
+        # print('start')
+        # print(inputs.shape)
         inputs, targets = inputs.to(device), targets.to(device)
 
         optimizer.zero_grad()
         outputs, logits = model(inputs)
         logits_list.append(logits)
         loss = criterion(outputs, targets)
-        print("loss:", loss)
+        print(f"{batch_idx}: loss:", loss.item())
         loss.backward()
         optimizer.step()
 
@@ -148,10 +157,11 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
+        # print('end')
 
     train_loss = running_loss / len(data_loader)
     train_accuracy = 100. * correct / total
-    lid_mean, lid_std = get_lids_random_batch(model, data_loader)
+    lid_mean, lid_std = get_lids_random_batch(logits_list)
     return train_loss, train_accuracy, lid_mean, lid_std
 
 
@@ -176,7 +186,7 @@ def val_epoch(model, data_loader, criterion, device):
 
     val_loss = running_loss / len(data_loader)
     val_accuracy = 100. * correct / total
-    lid_mean, lid_std = get_lids_random_batch(model, data_loader)
+    lid_mean, lid_std = get_lids_random_batch(logits_list)
     return val_loss, val_accuracy, lid_mean, lid_std
 
 
@@ -228,8 +238,11 @@ def main(args):
     train_loader, test_loader = load_data(path='D:/gkw/data/classification', dataset_name=args.dataset,
                                           batch_size=args.batch_size, noise_ratio=args.noise_ratio,
                                           noise_type=args.noise_type)
-    print("train_loader:", train_loader)
-    print("test_loader:", test_loader)
+    # if torch.cuda.is_available():
+    #     train_loader = train_loader.cuda()
+    #     test_loader = test_loader.cuda()
+    # print("train_loader:", train_loader)
+    # print("test_loader:", test_loader)
     # 设置GPU
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -238,6 +251,8 @@ def main(args):
     # 设置模型
     if args.model == 'resnet18':
         model = ResNet18FeatureExtractor(pretrained=False, num_classes=args.num_classes)
+        if torch.cuda.is_available():
+            model = model.cuda()
     else:
         raise NotImplementedError('model not implemented!')
 
