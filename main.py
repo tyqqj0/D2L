@@ -5,20 +5,19 @@
 # @
 # @Aim
 
-import os
 import argparse
+import os
 
+import mlflow
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset, Subset
-import torchvision
 from torchvision import datasets, transforms
 from torchvision import models
-import numpy as np
 from tqdm import tqdm
 
-import mlflow
 from LID import mle_batch_np
 
 
@@ -27,6 +26,13 @@ class NoisyMNIST(Dataset):
         self.mnist_dataset = mnist_dataset
         self.noise_ratio = noise_ratio
         self.noise_type = noise_type
+
+        # 检查是否是Subset，如果是，则直接使用原始数据集的targets属性
+        if isinstance(self.mnist_dataset, Subset):
+            self.targets = self.mnist_dataset.dataset.targets
+        else:
+            self.targets = self.mnist_dataset.targets
+
         self.apply_noise()
 
     def apply_noise(self):
@@ -36,16 +42,27 @@ class NoisyMNIST(Dataset):
             indices = np.random.choice(n_samples, n_noisy, replace=False)
             for idx in indices:
                 if self.noise_type == 'sym':
-                    # 对称噪声：随机选择一个不同的标签
-                    self.mnist_dataset.targets[idx] = torch.randint(0, 10, (1,)).item()
-                # 这里可以添加其他类型的噪声处理
-                # ...
+                    # 生成新的随机标签
+                    new_label = torch.randint(0, 10, (1,)).item()
+                    # 确保新标签与原标签不同
+                    while new_label == self.targets[idx]:
+                        new_label = torch.randint(0, 10, (1,)).item()
+                    # 应用噪声
+                    self.targets[idx] = new_label
 
     def __len__(self):
         return len(self.mnist_dataset)
 
     def __getitem__(self, idx):
-        return self.mnist_dataset[idx]
+        if isinstance(self.mnist_dataset, Subset):
+            # 如果是Subset，则从原始数据集中获取数据和标签
+            img, _ = self.mnist_dataset.dataset[self.mnist_dataset.indices[idx]]
+            target = self.targets[self.mnist_dataset.indices[idx]]
+        else:
+            # 如果不是Subset，则直接从数据集中获取数据和标签
+            img, target = self.mnist_dataset[idx]
+
+        return img, target
 
 
 def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MNIST', batch_size=128, noise_ratio=0.0,
@@ -283,10 +300,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch ResNet with LID')
     parser.add_argument('--dataset', default='MNIST', type=str, help='dataset = [MNIST/CIFAR10/CIFAR100/SVHN]')
     parser.add_argument('--num_classes', default=10, type=int, help='number of classes')
-    parser.add_argument('--max_data', default=128, type=int, help='max number of data')
-    parser.add_argument('--noise_ratio', default=0.0, type=float, help='corruption ratio, should be less than 1')
+    parser.add_argument('--max_data', default=256, type=int, help='max number of data')
+    parser.add_argument('--noise_ratio', default=0.5, type=float, help='corruption ratio, should be less than 1')
     parser.add_argument('--noise_type', default='sym', type=str, help='[sym/asym]')
-    parser.add_argument('--batch_size', default=8, type=int, help='batch size')
+    parser.add_argument('--batch_size', default=15, type=int, help='batch size')
     parser.add_argument('--epochs', default=200, type=int, help='number of total epochs to run')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
     parser.add_argument('--momentum', default=0.9, type=float, help='momentum')
