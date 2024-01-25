@@ -83,7 +83,7 @@ def val_epoch(model, data_loader, criterion, device):
     return val_loss, val_accuracy, lid_mean, lid_std
 
 
-def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args):
+def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     for epoch in range(args.epochs):
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy, train_lid_mean, train_lid_std = train_epoch(model, train_loader, optimizer,
@@ -113,11 +113,11 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             'lid': val_lid_mean,
             'lid_std': val_lid_std
         }
-        box.log_metrics('train', train_matrics, step=epoch + 1)
-        box.log_metrics('val', val_matrics, step=epoch + 1)
+        logbox.log_metrics('train', train_matrics, step=epoch + 1)
+        logbox.log_metrics('val', val_matrics, step=epoch + 1)
 
     # MLflow记录参数
-    mlflow.log_params({
+    logbox.log_params({
         'epoch': epoch,
         'lr': scheduler.get_last_lr()[0],
         'momentum': args.momentum,
@@ -125,17 +125,16 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     })
     # MLflow记录模型
     if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
-        torch.save(model.state_dict(), f'model_epoch_{epoch + 1}.pth')
-        mlflow.log_artifact(f'model_epoch_{epoch + 1}.pth')
+        logbox.save_model(model.state_dict())
 
 
 def main(args):
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
     logbox = box()
-    box.set_dataset_name(args.dataset)
-    box.set_model_name(args.model)
-    box.set_optional_info(args.noise_rate)
+    logbox.set_dataset_name(dataset_name=args.dataset)
+    logbox.set_model_name(model_name=args.model)
+    logbox.set_optional_info(str(args.noise_ratio))
     # 获取数据集
     train_loader, test_loader = load_data(path='D:/gkw/data/classification', dataset_name=args.dataset,
                                           max_data=args.max_data, batch_size=args.batch_size,
@@ -167,8 +166,8 @@ def main(args):
 
     # mlflow.start_run(run_name=args.run_name)
     # 训练
-    with box:
-        train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args)
+    with logbox:
+        train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox)
     # mlflow.end_run()
 
 
