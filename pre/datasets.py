@@ -8,6 +8,8 @@ import numpy as np
 import keras.backend as K
 from keras.datasets import mnist, cifar10, cifar100
 from keras.utils import np_utils
+
+import utils.data
 from util import other_class
 
 # Set random seed
@@ -24,7 +26,7 @@ def get_data(dataset='mnist', noise_ratio=0, random_shuffle=False):
     :return: 
     """
     if dataset == 'mnist':
-        (X_train, y_train), (X_test, y_test) = mnist.load_data()
+        (X_train, y_train), (X_test, y_test) = utils.data.load_data()
 
         X_train = X_train.reshape(-1, 28, 28, 1)
         X_test = X_test.reshape(-1, 28, 28, 1)
@@ -66,7 +68,7 @@ def get_data(dataset='mnist', noise_ratio=0, random_shuffle=False):
         y_test = np.reshape(test['y'], (-1,)) - 1
 
     elif dataset == 'cifar-10':
-        (X_train, y_train), (X_test, y_test) = cifar10.load_data()
+        (X_train, y_train), (X_test, y_test) = utils.data.load_data()
 
         X_train = X_train.reshape(-1, 32, 32, 3)
         X_test = X_test.reshape(-1, 32, 32, 3)
@@ -85,7 +87,7 @@ def get_data(dataset='mnist', noise_ratio=0, random_shuffle=False):
 
     elif dataset == 'cifar-100':
         # num_classes = 100
-        (X_train, y_train), (X_test, y_test) = cifar100.load_data()
+        (X_train, y_train), (X_test, y_test) = utils.data.load_data()
 
         X_train = X_train.reshape(-1, 32, 32, 3)
         X_test = X_test.reshape(-1, 32, 32, 3)
@@ -155,7 +157,7 @@ def validatation_split(X, y, split=0.1):
 if __name__ == "__main__":
     X_train, Y_train, X_test, Y_test = get_data(dataset='mnist', noise_ratio=40)
     Y_train = np.argmax(Y_train, axis=1)
-    (_, Y_clean_train), (_, Y_clean_test) = mnist.load_data()
+    (_, Y_clean_train), (_, Y_clean_test) = utils.data.load_data()
     clean_selected = np.argwhere(Y_train == Y_clean_train).reshape((-1,))
     noisy_selected = np.argwhere(Y_train != Y_clean_train).reshape((-1,))
     print("#correct labels: %s, #incorrect labels: %s" % (len(clean_selected), len(noisy_selected)))

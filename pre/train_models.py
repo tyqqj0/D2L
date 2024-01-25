@@ -21,7 +21,7 @@ D2L = {'mnist': {'init_epoch': 5, 'epoch_win': 5}, 'svhn': {'init_epoch': 20, 'e
 # prepare folders
 folders = ['data', 'model', 'log']
 for folder in folders:
-    path = os.path.join('./', folder)
+    path = os.path.join('../', folder)
     if not os.path.exists(path):
         os.makedirs(path)
 

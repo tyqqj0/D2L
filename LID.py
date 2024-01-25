@@ -29,3 +29,16 @@ def mle_batch_np(data, batch, k):
     a = np.apply_along_axis(np.sort, axis=1, arr=a)[:, 1:k + 1]  # 按行排序
     a = np.apply_along_axis(f, axis=1, arr=a)  # 按行计算，
     return a
+
+
+def get_lids_random_batch(batchs, k=20):
+    lids = []
+
+    for X_batch in batchs:
+        X_batch = X_batch.cpu().detach().numpy()
+        lid_batch = mle_batch_np(X_batch, X_batch, k=k)
+
+        lids.extend(lid_batch)
+
+    lids = np.asarray(lids, dtype=np.float32)
+    return np.mean(lids), np.std(lids)
