@@ -1,0 +1,85 @@
+{
+    "name": "parser",
+    "DEFAULT": {
+        "dataset": {
+            "default": "MNIST",
+            "type": "str",
+            "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
+        },
+        "num_classes": {
+            "default": 10,
+            "type": "int",
+            "help": "number of classes"
+        },
+        "max_data": {
+            "default": 256,
+            "type": "int",
+            "help": "max number of data"
+        },
+        "noise_ratio": {
+            "default": 0.75,
+            "type": "float",
+            "help": "corruption ratio, should be less than 1"
+        },
+        "noise_type": {
+            "default": "sym",
+            "type": "str",
+            "help": "[sym/asym]"
+        },
+        "batch_size": {
+            "default": 16,
+            "type": "int",
+            "help": "batch size"
+        },
+        "epochs": {
+            "default": 200,
+            "type": "int",
+            "help": "number of total epochs to run"
+        },
+        "lr": {
+            "default": 0.1,
+            "type": "float",
+            "help": "learning rate"
+        },
+        "momentum": {
+            "default": 0.9,
+            "type": "float",
+            "help": "momentum"
+        },
+        "weight_decay": {
+            "default": 0.0001,
+            "type": "float",
+            "help": "weight decay (default: 1e-4)"
+        },
+        "k": {
+            "default": 50,
+            "type": "int",
+            "help": "number of nearest neighbors"
+        },
+        "model": {
+            "default": "resnet18",
+            "type": "str",
+            "help": "model type"
+        },
+        "save_interval": {
+            "default": -1,
+            "type": "int",
+            "help": "save interval"
+        },
+        "exp_name": {
+            "default": "train_LID",
+            "type": "str",
+            "help": "exp name"
+        },
+        "run_name": {
+            "default": "run_3",
+            "type": "str",
+            "help": "run name"
+        },
+        "gpu": {
+            "default": "0",
+            "type": "str",
+            "help": "gpu device ids for CUDA_VISIBLE_DEVICES"
+        }
+    }
+}
