@@ -36,6 +36,7 @@ def get_lids_random_batch(batchs, k=20):
 
     for X_batch in batchs:
         X_batch = X_batch.cpu().detach().numpy()
+        # print(X_batch.shape)
         lid_batch = mle_batch_np(X_batch, X_batch, k=k)
 
         lids.extend(lid_batch)
@@ -46,6 +47,7 @@ def get_lids_random_batch(batchs, k=20):
 def get_lids_batches(batches:dict, k=20):
     lidss = {}
     for key, batchs in batches.items():
+        # print(key)
         lidss[key] = get_lids_random_batch(batchs, k=k)
     return lidss
 

@@ -28,7 +28,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     correct = 0
     total = 0
     logits_list = None
-    print('\n')
+    # print('\n')
     progress_bar = tqdm(enumerate(data_loader), total=len(data_loader))
     for batch_idx, (inputs, targets) in progress_bar:
         # print('start')
@@ -54,7 +54,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         # 更新进度条显示的信息
         progress_bar.set_description(f"Loss: {loss.item():.4f}")
         # print('end')
-    print('\n')
+    # print('\n')
     train_loss = running_loss / len(data_loader)
     train_accuracy = correct / total
     lidss = get_lids_batches(logits_list)
@@ -91,6 +91,7 @@ def val_epoch(model, data_loader, criterion, device):
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     for epoch in range(args.epochs):
+        print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy, train_lid = train_epoch(model, train_loader, optimizer,criterion,device)
         val_loss, val_accuracy, val_lid = val_epoch(model, test_loader, criterion, device)
@@ -99,8 +100,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
         # 打印训练信息
 
-        print('train_loss: %.3f, train_accuracy: %.3f, train_lid: %.3f' % (train_loss, train_accuracy, train_lid))
-        print('val_loss: %.3f, val_accuracy: %.3f, val_lid: %.3f' % (val_loss, val_accuracy, val_lid))
+        print('train_loss: %.3f, train_accuracy: %.3f, train_lid:' % (train_loss, train_accuracy), train_lid)
+        print('val_loss: %.3f, val_accuracy: %.3f, val_lid:' % (val_loss, val_accuracy), val_lid)
 
         # mlflow记录
         train_matrics = {
