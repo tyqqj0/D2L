@@ -15,7 +15,7 @@ import torch.optim as optim
 from tqdm import tqdm
 
 import utils.arg.parser
-from LID import get_lids_random_batch
+from LID import get_lids_random_batch, get_lids_batches
 from model.resnet18 import ResNet18FeatureExtractor
 from utils.data import load_data
 from utils.text import text_in_box
@@ -27,7 +27,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    logits_list = []
+    logits_list = None
     print('\n')
     progress_bar = tqdm(enumerate(data_loader), total=len(data_loader))
     for batch_idx, (inputs, targets) in progress_bar:
@@ -37,7 +37,10 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
 
         optimizer.zero_grad()
         outputs, logits = model(inputs)
-        logits_list.append(logits)
+        if logits_list is None:
+            logits_list = {key: [] for key in logits.keys()}
+        for key, value in logits.items():
+            logits_list[key].append(value)
         loss = criterion(outputs, targets)
         # print(f"{batch_idx}: loss:", loss.item())
         loss.backward()
@@ -54,8 +57,8 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     print('\n')
     train_loss = running_loss / len(data_loader)
     train_accuracy = correct / total
-    lid_mean, lid_std = get_lids_random_batch(logits_list)
-    return train_loss, train_accuracy, lid_mean, lid_std
+    lidss = get_lids_batches(logits_list)
+    return train_loss, train_accuracy, lidss
 
 
 def val_epoch(model, data_loader, criterion, device):
@@ -63,13 +66,16 @@ def val_epoch(model, data_loader, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    logits_list = []
+    logits_list = None
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(data_loader):
             inputs, targets = inputs.to(device), targets.to(device)
 
             outputs, logits = model(inputs)
-            logits_list.append(logits)
+            if logits_list is None:
+                logits_list = {key: [] for key in logits.keys()}
+            for key, value in logits.items():
+                logits_list[key].append(value)
             loss = criterion(outputs, targets)
 
             running_loss += loss.item()
@@ -79,42 +85,36 @@ def val_epoch(model, data_loader, criterion, device):
 
     val_loss = running_loss / len(data_loader)
     val_accuracy = correct / total
-    lid_mean, lid_std = get_lids_random_batch(logits_list)
-    return val_loss, val_accuracy, lid_mean, lid_std
+    lidss = get_lids_batches(logits_list)
+    return val_loss, val_accuracy, lidss
 
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     for epoch in range(args.epochs):
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
-        train_loss, train_accuracy, train_lid_mean, train_lid_std = train_epoch(model, train_loader, optimizer,
-                                                                                criterion,
-                                                                                device)
-        val_loss, val_accuracy, val_lid_mean, val_lid_std = val_epoch(model, test_loader, criterion, device)
+        train_loss, train_accuracy, train_lid = train_epoch(model, train_loader, optimizer,criterion,device)
+        val_loss, val_accuracy, val_lid = val_epoch(model, test_loader, criterion, device)
 
         scheduler.step()
 
         # 打印训练信息
 
-        print('train_loss: %.3f, train_accuracy: %.3f, train_lid: %.3f, train_lid_std: %.3f' %
-              (train_loss, train_accuracy, train_lid_mean, train_lid_std))
-        print('val_loss: %.3f, val_accuracy: %.3f, val_lid: %.3f, val_lid_std: %.3f' %
-              (val_loss, val_accuracy, val_lid_mean, val_lid_std))
+        print('train_loss: %.3f, train_accuracy: %.3f, train_lid: %.3f' % (train_loss, train_accuracy, train_lid))
+        print('val_loss: %.3f, val_accuracy: %.3f, val_lid: %.3f' % (val_loss, val_accuracy, val_lid))
 
         # mlflow记录
         train_matrics = {
             'loss': train_loss,
             'accuracy': train_accuracy,
-            'lid': train_lid_mean,
-            'lid_std': train_lid_std
         }
         val_matrics = {
             'loss': val_loss,
             'accuracy': val_accuracy,
-            'lid': val_lid_mean,
-            'lid_std': val_lid_std
         }
         logbox.log_metrics('train', train_matrics, step=epoch + 1)
         logbox.log_metrics('val', val_matrics, step=epoch + 1)
+        logbox.log_metrics('train', train_lid, pre='lid', step=epoch + 1)
+        logbox.log_metrics('val', val_lid, pre='lid', step=epoch + 1)
 
     # MLflow记录参数
     logbox.log_params({

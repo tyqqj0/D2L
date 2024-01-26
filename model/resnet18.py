@@ -26,19 +26,27 @@ class ResNet18FeatureExtractor(nn.Module):
     def forward(self, x):
         # 获取softmax之前的特征
         # Use ResNet18 up to the second-to-last layer to get the features
+        features = {}
         x = self.resnet18.conv1(x)
+        features['conv1'] = x
         x = self.resnet18.bn1(x)
+        features['bn1'] = x
         x = self.resnet18.relu(x)
+        features['relu1'] = x
         x = self.resnet18.maxpool(x)
-
+        features['maxpool'] = x
         x = self.resnet18.layer1(x)
+        features['layer1'] = x
         x = self.resnet18.layer2(x)
+        features['layer2'] = x
         x = self.resnet18.layer3(x)
+        features['layer3'] = x
         x = self.resnet18.layer4(x)
-
+        features['layer4'] = x
         x = self.resnet18.avgpool(x)
-        features = torch.flatten(x, 1)  # Flatten the features
-
+        features['avgpool'] = x
+        x = torch.flatten(x, 1)  # Flatten the features
+        features['flatten'] = x
         # Pass the features through the new fully connected layer
-        output = self.resnet18.fc(features)  # Make sure new_fc is defined in __init__ and has the correct in_features
+        output = self.resnet18.fc(x)  # Make sure new_fc is defined in __init__ and has the correct in_features
         return output, features

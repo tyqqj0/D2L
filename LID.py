@@ -41,4 +41,11 @@ def get_lids_random_batch(batchs, k=20):
         lids.extend(lid_batch)
 
     lids = np.asarray(lids, dtype=np.float32)
-    return np.mean(lids), np.std(lids)
+    return np.mean(lids)
+
+def get_lids_batches(batches:dict, k=20):
+    lidss = {}
+    for key, batchs in batches.items():
+        lidss[key] = get_lids_random_batch(batchs, k=k)
+    return lidss
+
