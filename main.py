@@ -93,7 +93,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     for epoch in range(args.epochs):
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
-        train_loss, train_accuracy, train_lid = train_epoch(model, train_loader, optimizer,criterion,device)
+        train_loss, train_accuracy, train_lid = train_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_accuracy, val_lid = val_epoch(model, test_loader, criterion, device)
 
         scheduler.step()
@@ -133,13 +133,14 @@ def main(args):
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
     logbox = box()
-    logbox.set_dataset_name(dataset_name=args.dataset)
+    logbox.set_dataset_name(dataset_name=args.origin_dataset)
     logbox.set_model_name(model_name=args.model)
     logbox.set_optional_info(str(args.noise_ratio))
     # 获取数据集
-    train_loader, test_loader = load_data(path='D:/gkw/data/classification', dataset_name=args.dataset,
-                                          max_data=args.max_data, batch_size=args.batch_size,
-                                          noise_ratio=args.noise_ratio, noise_type=args.noise_type)
+    train_loader, test_loader, args.num_classes = load_data(path='D:/gkw/data/classification',
+                                                            dataset_name=args.origin_dataset,
+                                                            max_data=args.max_data, batch_size=args.batch_size,
+                                                            noise_ratio=args.noise_ratio, noise_type=args.noise_type)
     # if torch.cuda.is_available():
     #     train_loader = train_loader.cuda()
     #     test_loader = test_loader.cuda()

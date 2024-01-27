@@ -151,11 +151,11 @@ def train(dataset='mnist', model_name='d2l', batch_size=128, epochs=50, noise_ra
 
 
 def main(args):
-    assert args.dataset in ['mnist', 'svhn', 'cifar-10', 'cifar-100'], \
+    assert args.origin_dataset in ['mnist', 'svhn', 'cifar-10', 'cifar-100'], \
         "dataset parameter must be either 'mnist', 'svhn', 'cifar-10', 'cifar-100'"
     assert args.model_name in ['ce', 'forward', 'backward', 'boot_hard', 'boot_soft', 'd2l'], \
         "dataset parameter must be either 'ce', 'forward', 'backward', 'boot_hard', 'boot_soft', 'd2l'"
-    train(args.dataset, args.model_name, args.batch_size, args.epochs, args.noise_ratio)
+    train(args.origin_dataset, args.model_name, args.batch_size, args.epochs, args.noise_ratio)
 
 
 if __name__ == "__main__":
