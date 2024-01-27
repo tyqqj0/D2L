@@ -133,12 +133,12 @@ def main(args):
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
     logbox = box()
-    logbox.set_dataset_name(dataset_name=args.origin_dataset)
+    logbox.set_dataset_name(dataset_name=args.dataset)
     logbox.set_model_name(model_name=args.model)
     logbox.set_optional_info(str(args.noise_ratio))
     # 获取数据集
     train_loader, test_loader, args.num_classes = load_data(path='D:/gkw/data/classification',
-                                                            dataset_name=args.origin_dataset,
+                                                            dataset_name=args.dataset,
                                                             max_data=args.max_data, batch_size=args.batch_size,
                                                             noise_ratio=args.noise_ratio, noise_type=args.noise_type)
     # if torch.cuda.is_available():
