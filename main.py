@@ -137,7 +137,7 @@ def main(args):
     logbox.set_model_name(model_name=args.model)
     logbox.set_optional_info(str(args.noise_ratio))
     # 获取数据集
-    train_loader, test_loader, args.num_classes = load_data(path='D:/gkw/data/classification',
+    train_loader, test_loader, args.num_classes, args.in_channels = load_data(path='D:/gkw/data/classification',
                                                             dataset_name=args.dataset,
                                                             max_data=args.max_data, batch_size=args.batch_size,
                                                             noise_ratio=args.noise_ratio, noise_type=args.noise_type)
@@ -153,7 +153,7 @@ def main(args):
 
     # 设置模型
     if args.model == 'resnet18':
-        model = ResNet18FeatureExtractor(pretrained=False, num_classes=args.num_classes)
+        model = ResNet18FeatureExtractor(pretrained=False, num_classes=args.num_classes, in_channels=args.in_channels)
         if torch.cuda.is_available():
             model = model.cuda()
     else:

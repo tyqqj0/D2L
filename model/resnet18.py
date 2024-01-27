@@ -11,12 +11,12 @@ from torch import flatten # 对卷积是否正确存疑 TODO
 
 
 class ResNet18FeatureExtractor(nn.Module):
-    def __init__(self, pretrained=False, num_classes=10):
+    def __init__(self, pretrained=False, num_classes=10, in_channels=1):
         super(ResNet18FeatureExtractor, self).__init__()
         # 使用ResNet18模型，设置输入通道数为1，输出类别数为10
         self.resnet18 = models.resnet18(pretrained=pretrained, num_classes=num_classes)
         # 修改第一个卷积层为单通道输入
-        self.resnet18.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.resnet18.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         # 如果你需要使用预训练权重，你可能需要手动复制权重从3通道到1通道
         # 这里是一个简单的平均权重的方法，如果你有预训练的权重，那么取消下面两行的注释
