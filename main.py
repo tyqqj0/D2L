@@ -114,8 +114,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         }
         logbox.log_metrics('train', train_matrics, step=epoch + 1)
         logbox.log_metrics('val', val_matrics, step=epoch + 1)
-        logbox.log_metrics('train', train_lid, pre='lid', step=epoch + 1)
-        logbox.log_metrics('val', val_lid, pre='lid', step=epoch + 1)
+        logbox.log_metrics('train', train_lid[0], pre='lid', step=epoch + 1)
+        logbox.log_metrics('val', val_lid[0], pre='lid', step=epoch + 1)
 
     # MLflow记录参数
     logbox.log_params({

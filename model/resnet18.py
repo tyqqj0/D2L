@@ -51,3 +51,6 @@ class ResNet18FeatureExtractor(nn.Module):
         # Pass the features through the new fully connected layer
         output = self.resnet18.fc(x)  # Make sure new_fc is defined in __init__ and has the correct in_features
         return output, features
+
+    def get_layer_conv_num(self):
+        pass

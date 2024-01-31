@@ -46,8 +46,11 @@ def get_lids_random_batch(batchs, k=20):
 
 def get_lids_batches(batches:dict, k=20):
     lidss = {}
+    lid_per_Dim = {} # : dim / C
     for key, batchs in batches.items():
         # print(key)
         lidss[key] = get_lids_random_batch(batchs, k=k)
-    return lidss
+        print("LID of ", key, ":", lidss[key], "per dim: ", lidss[key] / batchs[0].shape[0], "per C: ", lidss[key] / batchs[0].shape[1])
+        lid_per_Dim[key] = lidss[key] / batchs[0].shape[1]
+    return lidss, lid_per_Dim
 
