@@ -2,7 +2,7 @@
     "name": "parser",
     "DEFAULT": {
         "dataset": {
-            "default": "CIFAR10",
+            "default": "MNIST",
             "type": "str",
             "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
         },
@@ -12,12 +12,12 @@
             "help": "number of classes, automatically set"
         },
         "max_data": {
-            "default": 512,
+            "default": 2048,
             "type": "int",
             "help": "max number of data"
         },
         "noise_ratio": {
-            "default": 0.40,
+            "default": 0,
             "type": "float",
             "help": "corruption ratio, should be less than 1"
         },
@@ -27,12 +27,12 @@
             "help": "[sym/asym]"
         },
         "batch_size": {
-            "default": 32,
+            "default": 128,
             "type": "int",
             "help": "batch size"
         },
         "epochs": {
-            "default": 200,
+            "default": 89,
             "type": "int",
             "help": "number of total epochs to run"
         },
@@ -72,7 +72,7 @@
             "help": "exp name"
         },
         "run_name": {
-            "default": "run_5",
+            "default": "run_6",
             "type": "str",
             "help": "run name"
         },
