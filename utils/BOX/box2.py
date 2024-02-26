@@ -137,7 +137,7 @@ class box:
 
     def log_metric(self, stage, key, value, pre='', step=None):
         # 记录指标
-        key = stage + '_' + pre + ('_' if pre is not '' else '') + key
+        key = stage + '_' + pre + ('_' if pre != '' else '') + key
         mlflow.log_metric(key, value, step if step else self.epoch + 1)
 
     def log_metrics(self, stage, metrics=None, pre='', step=None, **kwargs):
@@ -148,7 +148,7 @@ class box:
         # 记录指标
         new_metrics = {}
         for key in metrics.keys():
-            new_key = stage + '_' + pre + ('_' if pre is not '' else '') + key
+            new_key = stage + '_' + pre + ('_' if pre != '' else '') + key
             new_metrics[new_key] = float(metrics[key])
 
         mlflow.log_metrics(new_metrics, step if step else self.epoch + 1)

@@ -5,7 +5,6 @@
 # @
 # @Aim
 
-import argparse
 import os
 
 # import mlflow
@@ -15,13 +14,14 @@ import torch.optim as optim
 from tqdm import tqdm
 
 import utils.arg.parser
-from LID import get_lids_random_batch, get_lids_batches
+from LID import get_lids_batches
 from model.resnet18 import ResNet18FeatureExtractor
+from utils.BOX.box2 import box
 from utils.data import load_data
 from utils.text import text_in_box
-from utils.BOX.box2 import box
 
-logbox = None
+logbox = box()
+plot_lif_all = None
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -91,23 +91,6 @@ def val_epoch(model, data_loader, criterion, device):
     return val_loss, val_accuracy, lidss
 
 
-@logbox.log_artifact_autott()
-def plot_lid_all(lidss, epoch, pre='', path=None):
-    file_name = pre + str(epoch) + '.png'
-    import matplotlib.pyplot as plt
-    plt.figure()
-    layers = list(lidss.keys())
-    values = [lidss[layer] for layer in layers]
-    plt.bar(layers, values)
-    plt.xlabel('Layers')
-    plt.ylabel('Values')
-    plt.title(f'Layer Values at Epoch {epoch}')
-    # plt.legend()
-    plt.savefig(path + file_name)
-    plt.close()
-    return path + file_name
-
-
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     for epoch in range(args.epochs):
         print('\n')
@@ -139,8 +122,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('val', val_lid[0], pre='lid', step=epoch + 1)
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
-            plot_lid_all(train_lid[0], epoch, pre='train_lid')
-            plot_lid_all(train_lid[1], epoch, pre='train_lid_pr')
+            plot_lid_all(train_lid[0], epoch, pre='train_lid/')
+            plot_lid_all(train_lid[1], epoch, pre='train_lid_pr/')
 
     # MLflow记录参数
     logbox.log_params({
@@ -158,7 +141,7 @@ def main(args):
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
     global logbox
-    logbox = box()
+
     logbox.set_dataset_name(dataset_name=args.dataset)
     logbox.set_model_name(model_name=args.model)
     logbox.set_optional_info(str(args.noise_ratio))
@@ -199,6 +182,24 @@ def main(args):
     with logbox:
         train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox)
     # mlflow.end_run()
+
+
+@logbox.log_artifact_autott
+def plot_lid_all(lidss, epoch, pre='', path=None):
+    file_name = pre + str(epoch) + '.png'
+    import matplotlib.pyplot as plt
+    plt.figure()
+    layers = list(lidss.keys())
+    values = [lidss[layer] for layer in layers]
+    plt.bar(layers, values)
+    plt.xlabel('Layers')
+    plt.ylabel('Values')
+    plt.title(f'Layer Values at Epoch {epoch}')
+    # plt.legend()
+    plt.savefig(path + file_name)
+    print('save plot {}'.format(file_name))
+    plt.close()
+    return path + file_name
 
 
 if __name__ == '__main__':
