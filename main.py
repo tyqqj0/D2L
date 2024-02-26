@@ -122,8 +122,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('val', val_lid[0], pre='lid', step=epoch + 1)
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
-            plot_lid_all(train_lid[0], epoch, y_lim=25, folder='train_lid/', pre='')
-            plot_lid_all(train_lid[1], epoch, y_lim=0.025, folder='train_lid_pr/', pre='')
+            plot_lid_all(train_lid[0], epoch + 1, y_lim=25, folder='train_lid/', pre='lid')
+            plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr/', pre='lid_pr')
 
     # MLflow记录参数
     logbox.log_params({
@@ -199,7 +199,7 @@ def plot_lid_all(lidss, epoch, y_lim=None, folder='', pre='', path=None):
         plt.ylim((0, y_lim))
     plt.xlabel('Layers')
     plt.ylabel('Values')
-    plt.title(f'Layer Values at Epoch {epoch}')
+    plt.title(f'Layer Values of {folder} at Epoch {epoch}')
     # plt.legend()
     plt.savefig(path + file_name)
     print('save plot {}'.format(file_name))

@@ -158,7 +158,7 @@ class box:
         def wrapper(*args, **kwargs):
             pathtt = self.cache_dir
             result_name = func(*args, path=pathtt, **kwargs)
-            mlflow.log_artifact(result_name)
+            mlflow.log_artifacts(result_name)
             return result_name
 
         return wrapper  # 返回装饰器, 规范装饰器的使用
