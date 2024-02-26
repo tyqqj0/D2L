@@ -122,8 +122,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('val', val_lid[0], pre='lid', step=epoch + 1)
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
-            plot_lid_all(train_lid[0], epoch + 1, y_lim=25, folder='train_lid/', pre='lid')
-            plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr/', pre='lid_pr')
+            plot_lid_all(train_lid[0], epoch + 1, y_lim=25, folder='train_lid', pre='lid')
+            plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr', pre='lid_pr')
 
     # MLflow记录参数
     logbox.log_params({
@@ -186,7 +186,7 @@ def main(args):
 
 @logbox.log_artifact_autott
 def plot_lid_all(lidss, epoch, y_lim=None, folder='', pre='', path=None):
-    file_name = folder + pre + 'epoch_{}.png'.format(epoch)
+    file_name = folder + '/' + pre + 'epoch_{}.png'.format(epoch)
     # 如果文件夹不存在
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
@@ -204,7 +204,7 @@ def plot_lid_all(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     plt.savefig(path + file_name)
     print('save plot {}'.format(file_name))
     plt.close()
-    return path + file_name
+    return path
 
 
 if __name__ == '__main__':
