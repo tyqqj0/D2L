@@ -21,6 +21,8 @@ from utils.data import load_data
 from utils.text import text_in_box
 from utils.BOX.box2 import box
 
+logbox = None
+
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
     model.train()
@@ -89,6 +91,23 @@ def val_epoch(model, data_loader, criterion, device):
     return val_loss, val_accuracy, lidss
 
 
+@logbox.log_artifact_autott()
+def plot_lid_all(lidss, epoch, pre='', path=None):
+    file_name = pre + str(epoch) + '.png'
+    import matplotlib.pyplot as plt
+    plt.figure()
+    layers = list(lidss.keys())
+    values = [lidss[layer] for layer in layers]
+    plt.bar(layers, values)
+    plt.xlabel('Layers')
+    plt.ylabel('Values')
+    plt.title(f'Layer Values at Epoch {epoch}')
+    # plt.legend()
+    plt.savefig(path + file_name)
+    plt.close()
+    return path + file_name
+
+
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     for epoch in range(args.epochs):
         print('\n')
@@ -134,15 +153,18 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 def main(args):
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
+    global logbox
     logbox = box()
     logbox.set_dataset_name(dataset_name=args.dataset)
     logbox.set_model_name(model_name=args.model)
     logbox.set_optional_info(str(args.noise_ratio))
     # 获取数据集
     train_loader, test_loader, args.num_classes, args.in_channels = load_data(path='D:/gkw/data/classification',
-                                                            dataset_name=args.dataset,
-                                                            max_data=args.max_data, batch_size=args.batch_size,
-                                                            noise_ratio=args.noise_ratio, noise_type=args.noise_type)
+                                                                              dataset_name=args.dataset,
+                                                                              max_data=args.max_data,
+                                                                              batch_size=args.batch_size,
+                                                                              noise_ratio=args.noise_ratio,
+                                                                              noise_type=args.noise_type)
     # if torch.cuda.is_available():
     #     train_loader = train_loader.cuda()
     #     test_loader = test_loader.cuda()

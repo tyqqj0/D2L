@@ -85,6 +85,11 @@
             "default": -1,
             "type": "int",
             "help": "input channels"
-        }
+        },
+        "cache_dir": {
+            "default": "./cache/",
+            "type": "str",
+            "help": "cache directory"
+        },
     }
 }

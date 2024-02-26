@@ -45,6 +45,11 @@ def get_lids_random_batch(batchs, k=20):
     return np.mean(lids)
 
 def get_lids_batches(batches:dict, k=20):
+    '''
+    :param batches: dict of logits
+    :param k: compute at most k nearest neighbors
+    :return: dict of LID {'layer1': 1.0, 'layer2': 2.0, 'layer3': 3.0, 'layer4': 4.0}
+    '''
     lidss = {}
     lid_per_Dim = {} # : dim / C
     for key, batchs in batches.items():

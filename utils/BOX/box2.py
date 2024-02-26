@@ -4,7 +4,7 @@
 # @File box2.py
 # @
 # @Aim
-
+import functools
 
 import mlflow
 import time
@@ -41,6 +41,9 @@ class box:
         self.running = False
         self.local_run_id = None
         self.epoch = 0  # 可选
+
+        # 工件暂存位置
+        self.cache_dir = self.arg.cache_dir
 
         # 显示初始化参数信息
         print(text.text_in_box(f'Init box with {arg_path}'))
@@ -102,6 +105,20 @@ class box:
         self.local_run_id = mlflow.start_run(run_name=self.run_name)
         self.running = True
 
+        # 初始化缓存文件夹
+        if self.cache_dir:
+            import os
+            # 如果不为空则清空
+            if os.path.exists(self.cache_dir):
+                import shutil
+                shutil.rmtree(self.cache_dir)
+                os.makedirs(self.cache_dir)
+                print(f'Clear cache dir: {self.cache_dir}')
+            if not os.path.exists(self.cache_dir):
+                os.makedirs(self.cache_dir)
+
+
+
     def __enter__(self):
         self.start_run()
         return self
@@ -135,6 +152,16 @@ class box:
             new_metrics[new_key] = float(metrics[key])
 
         mlflow.log_metrics(new_metrics, step if step else self.epoch + 1)
+
+    def log_artifact_autott(self, func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            pathtt = self.cache_dir
+            result_name = func(*args, path=pathtt, **kwargs)
+            mlflow.log_artifact(result_name)
+            return result_name
+
+        return wrapper  # 返回装饰器, 规范装饰器的使用
 
     def log_params(self, params, pre=''):
         # 记录参数
