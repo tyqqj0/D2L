@@ -91,5 +91,10 @@
             "type": "str",
             "help": "cache directory"
         },
+        "plot_interval": {
+            "default": 3,
+            "type": "int",
+            "help": "plot interval"
+        },
     }
 }
