@@ -102,8 +102,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
         # 打印训练信息
 
-        print('train_loss: %.3f, train_accuracy: %.3f, train_lid:' % (train_loss, train_accuracy), train_lid)
-        print('val_loss: %.3f, val_accuracy: %.3f, val_lid:' % (val_loss, val_accuracy), val_lid)
+        print('train_loss: %.3f, train_accuracy: %.3f, train_lid:' % (train_loss, train_accuracy))#, train_lid
+        print('val_loss: %.3f, val_accuracy: %.3f, val_lid:' % (val_loss, val_accuracy))#, val_lid
 
         # mlflow记录
         train_matrics = {
@@ -122,8 +122,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('val', val_lid[0], pre='lid', step=epoch + 1)
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
-            plot_lid_all(train_lid[0], epoch, y_lim=25, folder='train_lid', pre='')
-            plot_lid_all(train_lid[1], epoch, y_lim=0.025, folder='train_lid_pr', pre='')
+            plot_lid_all(train_lid[0], epoch, y_lim=25, folder='train_lid/', pre='')
+            plot_lid_all(train_lid[1], epoch, y_lim=0.025, folder='train_lid_pr/', pre='')
 
     # MLflow记录参数
     logbox.log_params({
@@ -196,7 +196,7 @@ def plot_lid_all(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     values = [lidss[layer] for layer in layers]
     plt.bar(layers, values)
     if y_lim:
-        plt.ylim(y_lim)
+        plt.ylim((0, y_lim))
     plt.xlabel('Layers')
     plt.ylabel('Values')
     plt.title(f'Layer Values at Epoch {epoch}')
