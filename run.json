@@ -72,7 +72,7 @@
             "help": "exp name"
         },
         "run_name": {
-            "default": "run_7",
+            "default": "run_8",
             "type": "str",
             "help": "run name"
         },
