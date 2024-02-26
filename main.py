@@ -186,7 +186,7 @@ def main(args):
 
 @logbox.log_artifact_autott
 def plot_lid_all(lidss, epoch, y_lim=None, folder='', pre='', path=None):
-    file_name = folder + '/' + pre + 'epoch_{}.png'.format(epoch)
+    file_name = folder + '/' + pre + 'epoch_{:03d}.png'.format(epoch)
     # 如果文件夹不存在
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
