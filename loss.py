@@ -19,7 +19,9 @@ def symmetric_cross_entropy(alpha, beta):
         y_pred = F.softmax(y_pred, dim=1)
         y_pred = torch.clamp(y_pred, min=1e-7, max=1.0)
 
-
+        # 如果y_pred和y_true的shape不一样，就把y_true转换成one-hot编码
+        if y_pred.shape != y_true.shape:
+            y_true = F.one_hot(y_true, num_classes=y_pred.shape[1]).float()
         # Ensure the labels are in a valid range
         y_true = torch.clamp(y_true, min=1e-4, max=1.0)
         print('shape2:', y_pred.shape, y_true.shape)
