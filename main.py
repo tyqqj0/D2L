@@ -19,6 +19,7 @@ from model.resnet18 import ResNet18FeatureExtractor
 from utils.BOX.box2 import box
 from utils.data import load_data
 from utils.text import text_in_box
+from loss import lid_paced_loss
 
 logbox = box()
 plot_lif_all = None
@@ -173,7 +174,11 @@ def main(args):
     # 设置优化器
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     # 设置损失函数
-    criterion = nn.CrossEntropyLoss()
+    if args.lossfn == 'ce' or args.lossfn == 'cross_entropy':
+        # criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss()
+    elif args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
+        criterion = lid_paced_loss(beta1=6.0, beta2=0.1)
     # 设置学习率调整策略
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 

@@ -95,6 +95,11 @@
             "default": 3,
             "type": "int",
             "help": "plot interval"
+        },
+        "lossfn": {
+            "default": "l2d",
+            "type": "str",
+            "help": "loss function"
         }
     }
 }
