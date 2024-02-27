@@ -21,10 +21,11 @@ def symmetric_cross_entropy(alpha, beta):
 
         # 如果y_pred和y_true的shape不一样，就把y_true转换成one-hot编码
         if y_pred.shape != y_true.shape:
+            # print(y_pred.sh/ape, y_true.shape)
             y_true = F.one_hot(y_true, num_classes=y_pred.shape[1]).float()
         # Ensure the labels are in a valid range
         y_true = torch.clamp(y_true, min=1e-4, max=1.0)
-        print('shape2:', y_pred.shape, y_true.shape)
+        # print('shape2:', y_pred.shape, y_true.shape)
         # Calculate the standard cross entropy (CE)
         ce = -torch.sum(y_true * torch.log(y_pred), dim=1)
 
@@ -221,7 +222,7 @@ class lid_paced_loss():
     def update_alpha(self, alpha):
         self.alpha = alpha
 
-    def __call__(self, y_true, y_pred, alpha=-1):
+    def __call__(self, y_pred, y_true, alpha=-1):
         """
         类别间局部内在维数（LID）调整损失函数，目标是类别间不对称的标签噪声。
 
@@ -229,17 +230,21 @@ class lid_paced_loss():
         :param y_pred: 预测标签
         :return: 损失值
         """
+        if y_pred.shape != y_true.shape:
+            # print(y_pred.shape, y_true.shape)
+            y_true = F.one_hot(y_true, num_classes=y_pred.shape[1]).float()
         if alpha == -1:
             alpha = self.alpha
         if self.alpha == 1.0:
-            return symmetric_cross_entropy(self.beta1, self.beta2)(y_true, y_pred)
+            return symmetric_cross_entropy(self.beta1, self.beta2)(y_pred, y_true)
         else:
-            num_classes = y_true.size(1)
+            # print(y_true.shape)
+            num_classes = y_true.size(1) #F.one_hot(y_true).size(1)
             pred_labels = F.one_hot(torch.argmax(y_pred, dim=1), num_classes=num_classes).float()
             y_new = self.alpha * y_true + (1. - self.alpha) * pred_labels
             y_pred = F.softmax(y_pred, dim=-1)
             y_pred = torch.clamp(y_pred, min=torch.finfo(y_pred.dtype).eps, max=1. - torch.finfo(y_pred.dtype).eps)
-            return -torch.sum(y_new * torch.log(y_pred), dim=-1)
+            return -torch.sum(y_new * torch.log(y_pred), dim=-1).mean()
 
 
 # def lid_paced_loss(y_true, y_pred, alpha=1.0):

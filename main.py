@@ -44,7 +44,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
             logits_list = {key: [] for key in logits.keys()}
         for key, value in logits.items():
             logits_list[key].append(value)
-        print('outputs:', outputs.shape, 'targets:', targets.shape)
+        # print('outputs:', outputs.shape, 'targets:', targets.shape)
         loss = criterion(outputs, targets)
         # print(f"{batch_idx}: loss:", loss.item())
         loss.backward()
@@ -148,7 +148,7 @@ def main(args):
 
     logbox.set_dataset_name(dataset_name=args.dataset)
     logbox.set_model_name(model_name=args.model)
-    logbox.set_optional_info(str(args.noise_ratio))
+    logbox.set_optional_info(str(args.noise_ratio) + '_' + str(args.lossfn))
     # 获取数据集
     train_loader, test_loader, args.num_classes, args.in_channels = load_data(path='D:/gkw/data/classification',
                                                                               dataset_name=args.dataset,
