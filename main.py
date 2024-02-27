@@ -98,7 +98,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy, train_lid = train_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_accuracy, val_lid = val_epoch(model, test_loader, criterion, device)
-
+        if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
+            criterion.update(train_lid[0], epoch + 1)
         scheduler.step()
 
         # 打印训练信息
@@ -179,8 +180,8 @@ def main(args):
         # criterion = nn.CrossEntropyLoss()
         criterion = nn.CrossEntropyLoss()
     elif args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
-        raise NotImplementedError('lid loss 还未实现！')
-        # criterion = lid_paced_loss(beta1=6.0, beta2=0.1)
+        # raise NotImplementedError('lid loss 还未实现！')
+        criterion = lid_paced_loss(max_epochs=args.epochs, beta1=0.1, beta2=1.0)
     else:
         raise NotImplementedError('loss function not implemented!')
     # 设置学习率调整策略

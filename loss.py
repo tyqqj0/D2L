@@ -187,24 +187,72 @@ def lid(logits, k=20, device='cpu'):
     return lids
 
 
-def lid_paced_loss(alpha=1.0, beta1=0.1, beta2=1.0):
-    """TO_DO
-    Class wise lid pace learning, targeting classwise asymmetric label noise.
+class lid_paced_loss():
+    def __init__(self, alpha=1.0, max_epochs=100, beta1=0.1, beta2=1.0):
+        self.alpha = alpha
+        self.min_lid = 100
+        self.p_lambda = 0.0
+        self.max_epochs = max_epochs
+        self.beta1 = beta1
+        self.beta2 = beta2
 
-    Args:
-      alpha: lid based adjustment parameter: this needs real-time update.
-    Returns:
-      Loss function compatible with PyTorch.
-    """
-    if alpha == 1.0:
-        return symmetric_cross_entropy(alpha=beta1, beta=beta2)
-    else:
-        def loss(y_true, y_pred):
+    def update(self, lids, epoch):
+        # 如果是字典取最后一层即flatten的
+        if isinstance(lids, dict):
+            lidsst = lids['flatten']
+        elif isinstance(lids, list):
+            lidsst = lids[-1]
+        elif isinstance(lids, int):
+            lidsst = lids
+        else:
+            raise ValueError('lids should be dict, list or int')
+
+        self.min_lid = min(self.min_lid, lidsst)
+        # expansion = self.lids[-1] / np.min(self.lids)
+        # self.alpha = np.exp(-self.p_lambda * expansion)
+        self.p_lambda = epoch * 1.0 / self.max_epochs
+        expansion = np.mean(lidsst) / self.min_lid
+        self.alpha = np.exp(-self.p_lambda * expansion)
+
+
+    def update_alpha(self, alpha):
+        self.alpha = alpha
+
+    def __call__(self, y_true, y_pred, alpha=-1):
+        """
+        类别间局部内在维数（LID）调整损失函数，目标是类别间不对称的标签噪声。
+
+        :param y_true: 真实标签
+        :param y_pred: 预测标签
+        :return: 损失值
+        """
+        if alpha == -1:
+            alpha = self.alpha
+        if self.alpha == 1.0:
+            return symmetric_cross_entropy(self.beta1, self.beta2)(y_true, y_pred)
+        else:
             num_classes = y_true.size(1)
             pred_labels = F.one_hot(torch.argmax(y_pred, dim=1), num_classes=num_classes).float()
-            y_new = alpha * y_true + (1. - alpha) * pred_labels
+            y_new = self.alpha * y_true + (1. - self.alpha) * pred_labels
             y_pred = F.softmax(y_pred, dim=-1)
-            y_pred = torch.clamp(y_pred, min=torch.finfo(y_pred.dtype).eps, max=1. - torch.finfo(y_pred.dtype).eps)
+            y_pred = torch.clamp(y_pred, min=1e-7, max=1.0 - 1e-7)
             return -torch.sum(y_new * torch.log(y_pred), dim=-1)
 
-        return loss
+
+# def lid_paced_loss(y_true, y_pred, alpha=1.0):
+#     """TO_DO
+#     Class wise lid pace learning, targeting classwise asymmetric label noise.
+#
+#     Args:
+#       alpha: lid based adjustment parameter: this needs real-time update.
+#     Returns:
+#       Loss function compatible with PyTorch.
+#     """
+#
+#     # def loss(y_true, y_pred):
+#     num_classes = y_true.size(1)
+#     pred_labels = F.one_hot(torch.argmax(y_pred, dim=1), num_classes=num_classes).float()
+#     y_new = alpha * y_true + (1. - alpha) * pred_labels
+#     y_pred = F.softmax(y_pred, dim=-1)
+#     y_pred = torch.clamp(y_pred, min=torch.finfo(y_pred.dtype).eps, max=1. - torch.finfo(y_pred.dtype).eps)
+#     return -torch.sum(y_new * torch.log(y_pred), dim=-1)
