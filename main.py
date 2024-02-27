@@ -88,8 +88,8 @@ def val_epoch(model, data_loader, criterion, device):
 
     val_loss = running_loss / len(data_loader)
     val_accuracy = correct / total
-    lidss = get_lids_batches(logits_list)
-    return val_loss, val_accuracy, lidss
+    lidses = get_lids_batches(logits_list)
+    return val_loss, val_accuracy, lidses
 
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
@@ -103,20 +103,20 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
         # 打印训练信息
 
-        print('train_loss: %.3f, train_accuracy: %.3f, train_lid:' % (train_loss, train_accuracy))#, train_lid
-        print('val_loss: %.3f, val_accuracy: %.3f, val_lid:' % (val_loss, val_accuracy))#, val_lid
+        print('train_loss: %.3f, train_accuracy: %.3f, train_lid:' % (train_loss, train_accuracy))  # , train_lid
+        print('val_loss: %.3f, val_accuracy: %.3f, val_lid:' % (val_loss, val_accuracy))  # , val_lid
 
         # mlflow记录
-        train_matrics = {
+        train_metrics = {
             'loss': train_loss,
             'accuracy': train_accuracy,
         }
-        val_matrics = {
+        val_metrics = {
             'loss': val_loss,
             'accuracy': val_accuracy,
         }
-        logbox.log_metrics('train', train_matrics, step=epoch + 1)
-        logbox.log_metrics('val', val_matrics, step=epoch + 1)
+        logbox.log_metrics('train', train_metrics, step=epoch + 1)
+        logbox.log_metrics('val', val_metrics, step=epoch + 1)
         logbox.log_metrics('train', train_lid[0], pre='lid', step=epoch + 1)
         logbox.log_metrics('train', train_lid[1], pre='Dim_pr', step=epoch + 1)
         logbox.log_metrics('val', val_lid[1], pre='Dim_pr', step=epoch + 1)
@@ -126,16 +126,17 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             plot_lid_all(train_lid[0], epoch + 1, y_lim=25, folder='train_lid', pre='lid')
             plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr', pre='lid_pr')
 
+        # MLflow记录模型
+        if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
+            logbox.save_model(model.state_dict())
+
     # MLflow记录参数
     logbox.log_params({
-        'epoch': epoch,
+        'epoch': args.epochs,
         'lr': scheduler.get_last_lr()[0],
         'momentum': args.momentum,
         'weight_decay': args.weight_decay
     })
-    # MLflow记录模型
-    if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
-        logbox.save_model(model.state_dict())
 
 
 def main(args):
@@ -178,7 +179,10 @@ def main(args):
         # criterion = nn.CrossEntropyLoss()
         criterion = nn.CrossEntropyLoss()
     elif args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
-        criterion = lid_paced_loss(beta1=6.0, beta2=0.1)
+        raise NotImplementedError('lid loss 还未实现！')
+        # criterion = lid_paced_loss(beta1=6.0, beta2=0.1)
+    else:
+        raise NotImplementedError('loss function not implemented!')
     # 设置学习率调整策略
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 

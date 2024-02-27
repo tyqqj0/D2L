@@ -97,7 +97,7 @@
             "help": "plot interval"
         },
         "lossfn": {
-            "default": "l2d",
+            "default": "ce",
             "type": "str",
             "help": "loss function"
         }
