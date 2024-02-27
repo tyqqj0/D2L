@@ -14,14 +14,15 @@ def symmetric_cross_entropy(alpha, beta):
     https://arxiv.org/abs/1908.06112
     """
 
-    def loss(y_true, y_pred):
+    def loss(y_pred, y_true):
         # Ensure the predictions sum to 1 and are clamped to prevent log(0)
         y_pred = F.softmax(y_pred, dim=1)
         y_pred = torch.clamp(y_pred, min=1e-7, max=1.0)
 
+
         # Ensure the labels are in a valid range
         y_true = torch.clamp(y_true, min=1e-4, max=1.0)
-
+        print('shape2:', y_pred.shape, y_true.shape)
         # Calculate the standard cross entropy (CE)
         ce = -torch.sum(y_true * torch.log(y_pred), dim=1)
 
@@ -235,7 +236,7 @@ class lid_paced_loss():
             pred_labels = F.one_hot(torch.argmax(y_pred, dim=1), num_classes=num_classes).float()
             y_new = self.alpha * y_true + (1. - self.alpha) * pred_labels
             y_pred = F.softmax(y_pred, dim=-1)
-            y_pred = torch.clamp(y_pred, min=1e-7, max=1.0 - 1e-7)
+            y_pred = torch.clamp(y_pred, min=torch.finfo(y_pred.dtype).eps, max=1. - torch.finfo(y_pred.dtype).eps)
             return -torch.sum(y_new * torch.log(y_pred), dim=-1)
 
 
