@@ -72,7 +72,7 @@
             "help": "exp name"
         },
         "run_name": {
-            "default": "run_8",
+            "default": "run_8_lid",
             "type": "str",
             "help": "run name"
         },
@@ -92,7 +92,7 @@
             "help": "cache directory"
         },
         "plot_interval": {
-            "default": 3,
+            "default": 2,
             "type": "int",
             "help": "plot interval"
         },

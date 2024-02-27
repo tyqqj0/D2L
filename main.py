@@ -44,6 +44,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
             logits_list = {key: [] for key in logits.keys()}
         for key, value in logits.items():
             logits_list[key].append(value)
+        print('outputs:', outputs.shape, 'targets:', targets.shape)
         loss = criterion(outputs, targets)
         # print(f"{batch_idx}: loss:", loss.item())
         loss.backward()
