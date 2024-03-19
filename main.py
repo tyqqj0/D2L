@@ -154,7 +154,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device)
         knowes = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
-                                   group_size=args.knowes_group_size)
+                                   group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
         scheduler.step()

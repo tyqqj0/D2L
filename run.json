@@ -67,12 +67,12 @@
             "help": "save interval"
         },
         "exp_name": {
-            "default": "train_LID",
+            "default": "train_knowledge",
             "type": "str",
             "help": "exp name"
         },
         "run_name": {
-            "default": "run_8_lid",
+            "default": "knowledge_run_1",
             "type": "str",
             "help": "run name"
         },
@@ -99,7 +99,7 @@
         "lossfn": {
             "default": "ce",
             "type": "str",
-            "help": "loss function"
+            "help": "loss function, l2d, ce"
         },
         "knowledge_group_size": {
             "default": 15,
