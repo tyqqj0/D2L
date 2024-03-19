@@ -135,6 +135,7 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
         # 假设get_lids_batches是计算LID的函数
         # 这里需要将logits转换为tensor，因为它目前是一个列表
         # tensor_logits = torch.stack(logits_per_class)
+        # print(logits_per_class.shape)
         class_lidses.append(get_lids_batches(logits_per_class))
 
     # 求class_lidses的平均值

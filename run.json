@@ -102,7 +102,7 @@
             "help": "loss function, l2d, ce"
         },
         "knowledge_group_size": {
-            "default": 15,
+            "default": 25,
             "type": "int",
             "help": "knowledge group size"
         }

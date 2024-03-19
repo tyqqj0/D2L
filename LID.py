@@ -22,7 +22,7 @@ def mle_batch_np(data, batch, k):
     """
     data = np.asarray(data, dtype=np.float32)
     batch = np.asarray(batch, dtype=np.float32)
-
+    print(batch.shape)
     k = min(k, len(data) - 1)
     f = lambda v: - k / np.sum(np.log(v / v[-1] + 1e-8))
     a = compute_dist(batch, data)  # 计算两个矩阵的距离，返回一个矩阵
@@ -33,7 +33,8 @@ def mle_batch_np(data, batch, k):
 
 def get_lids_random_batch(batchs, k=20):
     lids = []
-
+    if not isinstance(batchs, list):
+        batchs = [batchs]
     for X_batch in batchs:
         X_batch = X_batch.cpu().detach().numpy()
         # print(X_batch.shape)
@@ -54,6 +55,7 @@ def get_lids_batches(batches:dict, k=20):
     # lid_per_Dim = {} # : dim / C
     for key, batchs in batches.items():
         # print(key)
+        # print(batchs.shape)
         lidss[key] = get_lids_random_batch(batchs, k=k)
         # print("LID of ", key, ":", lidss[key], "per batch_size: ", lidss[key] / batchs[0].shape[0], "per C: ", lidss[key] / batchs[0].shape[1])
         # lid_per_Dim[key] = lidss[key] / batchs[0].shape[1]
