@@ -93,6 +93,36 @@ def val_epoch(model, data_loader, criterion, device):
     return val_loss, val_accuracy, lidses
 
 
+def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
+    '''
+    计算LID
+    :param model:
+    :param data_loader: 使用训练集
+    :param device:
+    :param group_size: 计算LID时的每类取数据量, 在分类任务时现阶段使用，后序将计算Y密度/X密度代替
+    '''
+    model.eval()
+    logits_list = None
+    class_loader = []
+    with torch.no_grad():
+        for i in range(num_class):
+            # 选出group_size个各种类别的样本
+
+
+
+    class_lidses = []
+    for j in logits_list:
+        class_lidses.append(get_lids_batches(j))
+    # 求class_lidses的平均值
+    lidses = {key: 0 for key in class_lidses[0].keys()}
+    for a_lids in class_lidses:
+        for key, value in a_lids.items():
+            lidses[key] += value
+    for key in lidses.keys():
+        lidses[key] = lidses[key] / num_class
+    return lidses
+
+
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     for epoch in range(args.epochs):
         print('\n')

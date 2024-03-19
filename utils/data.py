@@ -10,6 +10,23 @@ from torch.utils.data import Dataset, Subset, DataLoader
 from torchvision import transforms, datasets
 
 
+
+# class LabelGroupedDataset(Dataset):
+#     def __init__(self, dataset, num_classes, group_size=15):
+#         self.origin_dataset = dataset
+#         self.num_classes = num_classes
+#         self.group_size = group_size
+#         # 取出group_size个各种类别的样本
+#         self.dataset = None
+#         for i in range(num_classes):
+#             indices = (self.origin_dataset.targets == i).nonzero().flatten()
+#             indices = indices[:group_size]
+#             if self.dataset is None:
+#                 self.dataset = Subset(self.origin_dataset, indices)
+#             else:
+#                 self.dataset = torch.utils.data.ConcatDataset([self.dataset, Subset(self.origin_dataset, indices)])
+
+
 class NoiseTransitionMatrix:
     def __init__(self, num_classes, seed=None):
         self.num_classes = num_classes
