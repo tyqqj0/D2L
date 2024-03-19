@@ -29,7 +29,7 @@ class ResNet18FeatureExtractor(nn.Module):
         # Use ResNet18 up to the second-to-last layer to get the features
         features = {}
         x = self.resnet18.conv1(x)
-        features['conv1'] = flatten(x, 1)# (16, 64, 14, 14) (batch_size, C, H, W)
+        features['conv1'] = flatten(x, 1)# (16, 64, 14, 14) (batch_size, C, H, W)->(batch_size, C*H*W)
         x = self.resnet18.bn1(x)
         features['bn1'] = flatten(x, 1)
         x = self.resnet18.relu(x)

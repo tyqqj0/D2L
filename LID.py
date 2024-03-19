@@ -51,11 +51,11 @@ def get_lids_batches(batches:dict, k=20):
     :return: dict of LID {'layer1': 1.0, 'layer2': 2.0, 'layer3': 3.0, 'layer4': 4.0}
     '''
     lidss = {}
-    lid_per_Dim = {} # : dim / C
+    # lid_per_Dim = {} # : dim / C
     for key, batchs in batches.items():
         # print(key)
         lidss[key] = get_lids_random_batch(batchs, k=k)
         # print("LID of ", key, ":", lidss[key], "per batch_size: ", lidss[key] / batchs[0].shape[0], "per C: ", lidss[key] / batchs[0].shape[1])
-        lid_per_Dim[key] = lidss[key] / batchs[0].shape[1]
-    return lidss, lid_per_Dim
+        # lid_per_Dim[key] = lidss[key] / batchs[0].shape[1]
+    return lidss
 

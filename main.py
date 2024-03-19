@@ -6,6 +6,7 @@
 # @Aim
 
 import os
+from collections import defaultdict
 
 # import mlflow
 import torch
@@ -30,7 +31,6 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    logits_list = None
     # print('\n')
     progress_bar = tqdm(enumerate(data_loader), total=len(data_loader))
     for batch_idx, (inputs, targets) in progress_bar:
@@ -39,11 +39,8 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         inputs, targets = inputs.to(device), targets.to(device)
 
         optimizer.zero_grad()
-        outputs, logits = model(inputs)
-        if logits_list is None:
-            logits_list = {key: [] for key in logits.keys()}
-        for key, value in logits.items():
-            logits_list[key].append(value)
+        outputs, _ = model(inputs)
+
         # print('outputs:', outputs.shape, 'targets:', targets.shape)
         loss = criterion(outputs, targets)
         # print(f"{batch_idx}: loss:", loss.item())
@@ -61,8 +58,8 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     # print('\n')
     train_loss = running_loss / len(data_loader)
     train_accuracy = correct / total
-    lidss = get_lids_batches(logits_list)
-    return train_loss, train_accuracy, lidss
+
+    return train_loss, train_accuracy
 
 
 def val_epoch(model, data_loader, criterion, device):
@@ -70,16 +67,12 @@ def val_epoch(model, data_loader, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    logits_list = None
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(data_loader):
             inputs, targets = inputs.to(device), targets.to(device)
 
-            outputs, logits = model(inputs)
-            if logits_list is None:
-                logits_list = {key: [] for key in logits.keys()}
-            for key, value in logits.items():
-                logits_list[key].append(value)
+            outputs, _ = model(inputs)
+
             loss = criterion(outputs, targets)
 
             running_loss += loss.item()
@@ -89,8 +82,7 @@ def val_epoch(model, data_loader, criterion, device):
 
     val_loss = running_loss / len(data_loader)
     val_accuracy = correct / total
-    lidses = get_lids_batches(logits_list)
-    return val_loss, val_accuracy, lidses
+    return val_loss, val_accuracy
 
 
 def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
@@ -102,24 +94,56 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
     :param group_size: 计算LID时的每类取数据量, 在分类任务时现阶段使用，后序将计算Y密度/X密度代替
     '''
     model.eval()
-    logits_list = None
-    class_loader = []
+    logits_list = defaultdict(dict)
+    # 存储每个类别的logits,defaultdict是一个字典，当字典里的key不存在但被查找时，返回的不是keyEror而是一个默认值
+    class_counts = [0] * num_class  # 记录每个类别收集的样本数
+
     with torch.no_grad():
-        for i in range(num_class):
-            # 选出group_size个各种类别的样本
+        for inputs, targets in data_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            # 如果targets不是一维的，就转换成一维的softmax
+            if len(targets.size()) > 1:
+                targets = torch.argmax(targets, dim=1)
 
+            # optimizer.zero_grad()
+            outputs, logits = model(inputs)  # 假设模型返回的最后一个元素是logits
 
+            # 遍历batch中的每个样本
+            for idx, target in enumerate(targets):
+                label = target.item()
+                # 检查是否已经有足够的样本
+                if class_counts[label] < group_size:
+                    # 此处logits_list[label]应该是一个字典,结构为{'layer_name', data_tensor}应在data_tensor处拼接新的logits
+                    for key, value in logits.items():
+                        # logits_list
+                        if key in logits_list[label]:
+                            logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
+                                                                dim=0)
+                        else:
+                            logits_list[label][key] = value[idx].unsqueeze(0)
+                    class_counts[label] += 1
+                # 如果每个类别都收集到了足够的样本，就退出
+                if all(count >= group_size for count in class_counts):
+                    break
+            # 如果每个类别都收集到了足够的样本，就退出
+            if all(count >= group_size for count in class_counts):
+                break
 
+    # 计算每个类别的LID
     class_lidses = []
-    for j in logits_list:
-        class_lidses.append(get_lids_batches(j))
+    for label, logits_per_class in logits_list.items():
+        # 假设get_lids_batches是计算LID的函数
+        # 这里需要将logits转换为tensor，因为它目前是一个列表
+        # tensor_logits = torch.stack(logits_per_class)
+        class_lidses.append(get_lids_batches(logits_per_class))
+
     # 求class_lidses的平均值
     lidses = {key: 0 for key in class_lidses[0].keys()}
     for a_lids in class_lidses:
         for key, value in a_lids.items():
             lidses[key] += value
     for key in lidses.keys():
-        lidses[key] = lidses[key] / num_class
+        lidses[key] = lidses[key] / len(class_lidses)
     return lidses
 
 
@@ -127,16 +151,19 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     for epoch in range(args.epochs):
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
-        train_loss, train_accuracy, train_lid = train_epoch(model, train_loader, optimizer, criterion, device)
-        val_loss, val_accuracy, val_lid = val_epoch(model, test_loader, criterion, device)
+        train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device)
+        val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device)
+        knowes = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
+                                   group_size=args.knowes_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
-            criterion.update(train_lid[0], epoch + 1)
+            criterion.update(knowes, epoch + 1)
         scheduler.step()
 
         # 打印训练信息
 
-        print('train_loss: %.3f, train_accuracy: %.3f, train_lid:' % (train_loss, train_accuracy))  # , train_lid
-        print('val_loss: %.3f, val_accuracy: %.3f, val_lid:' % (val_loss, val_accuracy))  # , val_lid
+        print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))  # , train_lid
+        print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))  # , val_lid
+        print('knowledge:', knowes)
 
         # mlflow记录
         train_metrics = {
@@ -149,14 +176,11 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         }
         logbox.log_metrics('train', train_metrics, step=epoch + 1)
         logbox.log_metrics('val', val_metrics, step=epoch + 1)
-        logbox.log_metrics('train', train_lid[0], pre='lid', step=epoch + 1)
-        logbox.log_metrics('train', train_lid[1], pre='Dim_pr', step=epoch + 1)
-        logbox.log_metrics('val', val_lid[1], pre='Dim_pr', step=epoch + 1)
-        logbox.log_metrics('val', val_lid[0], pre='lid', step=epoch + 1)
+        logbox.log_metrics('knowledge', knowes, step=epoch + 1)
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
-            plot_lid_all(train_lid[0], epoch + 1, y_lim=25, folder='train_lid', pre='lid')
-            plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr', pre='lid_pr')
+            plot_lid_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre='knowledge')
+            # plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr', pre='lid_pr')
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
