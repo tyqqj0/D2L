@@ -97,9 +97,14 @@
             "help": "plot interval"
         },
         "lossfn": {
-            "default": "l2d",
+            "default": "ce",
             "type": "str",
             "help": "loss function"
+        },
+        "knowledge_group_size": {
+            "default": 15,
+            "type": "int",
+            "help": "knowledge group size"
         }
     }
 }
