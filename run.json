@@ -2,7 +2,7 @@
     "name": "parser",
     "DEFAULT": {
         "dataset": {
-            "default": "MNIST",
+            "default": "CIFAR10",
             "type": "str",
             "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
         },
