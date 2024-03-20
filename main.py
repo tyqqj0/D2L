@@ -17,6 +17,7 @@ from tqdm import tqdm
 import utils.arg.parser
 from LID import get_lids_batches
 from model.resnet18 import ResNet18FeatureExtractor
+from model.resnet50 import ResNet50FeatureExtractor
 from utils.BOX.box2 import box
 from utils.data import load_data
 from utils.text import text_in_box
@@ -224,6 +225,10 @@ def main(args):
     # 设置模型
     if args.model == 'resnet18':
         model = ResNet18FeatureExtractor(pretrained=False, num_classes=args.num_classes, in_channels=args.in_channels)
+        if torch.cuda.is_available():
+            model = model.cuda()
+    elif args.model == 'resnet50':
+        model = ResNet50FeatureExtractor(pretrained=False, num_classes=args.num_classes, in_channels=args.in_channels)
         if torch.cuda.is_available():
             model = model.cuda()
     else:

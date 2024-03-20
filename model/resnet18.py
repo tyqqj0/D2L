@@ -10,6 +10,9 @@ from torchvision import models
 from torch import flatten # 对卷积是否正确存疑 TODO
 
 
+__ALL__ = ['ResNet18FeatureExtractor']
+
+
 class ResNet18FeatureExtractor(nn.Module):
     def __init__(self, pretrained=False, num_classes=10, in_channels=1):
         super(ResNet18FeatureExtractor, self).__init__()
@@ -45,9 +48,9 @@ class ResNet18FeatureExtractor(nn.Module):
         x = self.resnet18.layer4(x)
         features['layer4'] = flatten(x, 1)
         x = self.resnet18.avgpool(x)
-        features['avgpool'] = flatten(x, 1)
+        # features['avgpool'] = flatten(x, 1)
         x = torch.flatten(x, 1)  # Flatten the features
-        features['flatten'] = flatten(x, 1)
+        # features['flatten'] = flatten(x, 1)
         # Pass the features through the new fully connected layer
         output = self.resnet18.fc(x)  # Make sure new_fc is defined in __init__ and has the correct in_features
         return output, features
