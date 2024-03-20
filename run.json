@@ -57,9 +57,9 @@
             "help": "number of nearest neighbors"
         },
         "model": {
-            "default": "resnet18",
+            "default": "resnet50",
             "type": "str",
-            "help": "model type"
+            "help": "model type: resnet18 / resnet50"
         },
         "save_interval": {
             "default": -1,
