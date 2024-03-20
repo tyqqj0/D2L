@@ -22,9 +22,10 @@ from utils.BOX.box2 import box
 from utils.data import load_data
 from utils.text import text_in_box
 from loss import lid_paced_loss
+from utils.plotfn import plot_lid_seaborn
 
 logbox = box()
-plot_lif_all = None
+plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -255,27 +256,8 @@ def main(args):
     # mlflow.end_run()
 
 
-@logbox.log_artifact_autott
-def plot_lid_all(lidss, epoch, y_lim=None, folder='', pre='', path=None):
-    file_name = folder + '/' + pre + '_' + 'epoch_{:03d}.png'.format(epoch)
-    # 如果文件夹不存在
-    if not os.path.exists(path + folder):
-        os.makedirs(path + folder)
-    import matplotlib.pyplot as plt
-    plt.figure()
-    layers = list(lidss.keys())
-    values = [lidss[layer] for layer in layers]
-    plt.bar(layers, values)
-    if y_lim:
-        plt.ylim((0, y_lim))
-    plt.xlabel('Layers')
-    plt.ylabel('Values')
-    plt.title(f'{pre} Layer {folder} at Epoch {epoch}')
-    # plt.legend()
-    plt.savefig(path + file_name)
-    print('save plot {}'.format(file_name))
-    plt.close()
-    return path
+
+
 
 
 if __name__ == '__main__':
