@@ -22,7 +22,7 @@ def mle_batch_np(data, batch, k):
     """
     data = np.asarray(data, dtype=np.float32)
     batch = np.asarray(batch, dtype=np.float32)
-    print(batch.shape)
+    # print(batch.shape)
     k = min(k, len(data) - 1)
     f = lambda v: - k / np.sum(np.log(v / v[-1] + 1e-8))
     a = compute_dist(batch, data)  # 计算两个矩阵的距离，返回一个矩阵
