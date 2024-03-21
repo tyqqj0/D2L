@@ -121,7 +121,7 @@ def kn_map_layer(data, label, layer='', group_size=25):
     :return: plot
     '''
 
-    data = data.cpu().detach().numpy()
+    # data = data.cpu().detach().numpy()
     # 检查输入数据的维度
     if len(data.shape) != 2:
         raise ValueError("Data should be 2D array.")
@@ -134,7 +134,7 @@ def kn_map_layer(data, label, layer='', group_size=25):
     #     raise ValueError("Data and label must have the same number of samples.")
 
     # 运行t-SNE降维
-    tsne = TSNE(n_components=2, perplexity=min(group_size/4, data.shape[0]), n_iter=1000)
+    tsne = TSNE(n_components=2, perplexity=min(group_size * 2 / 4, data.shape[0]), n_iter=1000)
     data_tsne = tsne.fit_transform(data)
 
     # 将降维后的数据和标签转换为DataFrame

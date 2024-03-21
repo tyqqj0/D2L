@@ -6,6 +6,16 @@
             "type": "str",
             "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
         },
+        "noise_ratio": {
+            "default": 0,
+            "type": "float",
+            "help": "corruption ratio, should be less than 1"
+        },
+        "model": {
+            "default": "resnet18",
+            "type": "str",
+            "help": "model type: resnet18 / resnet50"
+        },
         "num_classes": {
             "default": -1,
             "type": "int",
@@ -15,11 +25,6 @@
             "default": 2048,
             "type": "int",
             "help": "max number of data"
-        },
-        "noise_ratio": {
-            "default": 0,
-            "type": "float",
-            "help": "corruption ratio, should be less than 1"
         },
         "noise_type": {
             "default": "sym",
@@ -32,7 +37,7 @@
             "help": "batch size"
         },
         "epochs": {
-            "default": 89,
+            "default": 100,
             "type": "int",
             "help": "number of total epochs to run"
         },
@@ -56,11 +61,6 @@
             "type": "int",
             "help": "number of nearest neighbors"
         },
-        "model": {
-            "default": "resnet18",
-            "type": "str",
-            "help": "model type: resnet18 / resnet50"
-        },
         "save_interval": {
             "default": -1,
             "type": "int",
@@ -72,7 +72,7 @@
             "help": "exp name"
         },
         "run_name": {
-            "default": "knowledge_run_2",
+            "default": "knowledge_2",
             "type": "str",
             "help": "run name"
         },
@@ -102,7 +102,7 @@
             "help": "loss function, l2d, ce"
         },
         "knowledge_group_size": {
-            "default": 25,
+            "default": 50,
             "type": "int",
             "help": "knowledge group size"
         }

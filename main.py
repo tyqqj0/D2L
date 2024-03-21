@@ -16,13 +16,13 @@ from tqdm import tqdm
 
 import utils.arg.parser
 from LID import get_lids_batches
+from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
 from utils.BOX.box2 import box
 from utils.data import load_data
-from utils.text import text_in_box
-from loss import lid_paced_loss
 from utils.plotfn import plot_lid_seaborn, kn_map
+from utils.text import text_in_box
 
 logbox = box()
 plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
@@ -96,6 +96,8 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15, e
     :param device:
     :param group_size: 计算LID时的每类取数据量, 在分类任务时现阶段使用，后序将计算Y密度/X密度代替
     '''
+    if group_size < 2:
+        return {'null': 0}
     model.eval()
     logits_list = defaultdict(dict)
     # 存储每个类别的logits,defaultdict是一个字典，当字典里的key不存在但被查找时，返回的不是keyEror而是一个默认值
@@ -149,17 +151,15 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15, e
     for key in lidses.keys():
         lidses[key] = lidses[key] / len(class_lidses)
 
-    # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
-    for label, logits_per_class in logits_list.items():
-        # a_class_layer = logits_per_class.keys()
-        if label != 6:
-            continue
-        plot_kn_map(logits_per_class, label, epoch=epoch, group_size=group_size, folder='kn_map',
-                    pre=model_name)
+    # # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
+    # for label, logits_per_class in logits_list.items():
+    #     # a_class_layer = logits_per_class.keys()
+    #     if label != 6:
+    #         continue
+    #     plot_kn_map(logits_per_class, label, epoch=epoch, group_size=group_size, folder='kn_map',
+    #                 pre=model_name)
 
-
-
-    # 
+    #
     return lidses
 
 
