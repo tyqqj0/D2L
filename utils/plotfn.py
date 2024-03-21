@@ -56,7 +56,7 @@ def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
 
     # 创建Seaborn条形图
     plt.figure()
-    barplot = sns.barplot(x='Layers', y='Values', data=data, ci=None)
+    barplot = sns.barplot(x='Layers', y='Values', data=data, errorbar=None)
 
     # 设置y轴的限制
     if y_lim:
@@ -107,7 +107,7 @@ def kn_map(data_epoch, label, epoch, group_size, folder='', pre='', path=None):
     # data = np.vstack([data for data in data_epoch.values()])
     # layer_plt = kn_map_layer(data, label, 'all', group_size=group_size)
 
-    return folder
+    return os.path.join(path, folder)
 
 
 
@@ -124,14 +124,15 @@ def kn_map_layer(data, label, layer='', group_size=25):
     if len(data.shape) != 2:
         raise ValueError("Data should be 2D array.")
 
-    if len(label.shape) != 1:
-        raise ValueError("Label should be 1D array.")
+    data = data.cpu().detach().numpy()
+    # if len(label.shape) != 1:
+    #     raise ValueError("Label should be 1D array.")
 
-    if data.shape[0] != label.shape[0]:
-        raise ValueError("Data and label must have the same number of samples.")
+    # if data.shape[0] != label.shape[0]:
+    #     raise ValueError("Data and label must have the same number of samples.")
 
     # 运行t-SNE降维
-    tsne = TSNE(n_components=2, perplexity=group_size, n_iter=1000)
+    tsne = TSNE(n_components=2, perplexity=min(group_size/4, data.shape[0]), n_iter=1000)
     data_tsne = tsne.fit_transform(data)
 
     # 将降维后的数据和标签转换为DataFrame

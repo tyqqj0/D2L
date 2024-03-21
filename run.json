@@ -17,7 +17,7 @@
             "help": "max number of data"
         },
         "noise_ratio": {
-            "default": 0.85,
+            "default": 0,
             "type": "float",
             "help": "corruption ratio, should be less than 1"
         },
@@ -57,7 +57,7 @@
             "help": "number of nearest neighbors"
         },
         "model": {
-            "default": "resnet50",
+            "default": "resnet18",
             "type": "str",
             "help": "model type: resnet18 / resnet50"
         },
@@ -72,7 +72,7 @@
             "help": "exp name"
         },
         "run_name": {
-            "default": "knowledge_run_1",
+            "default": "knowledge_run_2",
             "type": "str",
             "help": "run name"
         },

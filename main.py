@@ -152,8 +152,11 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15, e
     # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
     for label, logits_per_class in logits_list.items():
         # a_class_layer = logits_per_class.keys()
+        if label != 6:
+            continue
         plot_kn_map(logits_per_class, label, epoch=epoch, group_size=group_size, folder='kn_map',
                     pre=model_name)
+
 
 
     # 
@@ -195,7 +198,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             plot_lid_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
             dict_to_json(knowes.update(
                 {'info:model': args.model, 'info:noise_ratio': args.noise_ratio, 'info:data_set': args.dataset}),
-                epoch + 1, pre=args.model + '_' + str(args.noise_ratio))
+                epoch + 1, pre=args.model + '_' + str(int(args.noise_ratio * 100)))
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
@@ -278,13 +281,14 @@ def dict_to_json(dicttt, epoch, folder='knowledge_json', pre='', path=''):
     full_folder_path = os.path.join(path, folder) if path is not None else folder
     if not os.path.exists(full_folder_path):
         os.makedirs(full_folder_path)
-    full_file_path = os.path.join(full_folder_path, file_name)
+    full_file_path = full_folder_path + '/'
+    full_file_path = full_file_path + file_name
 
     with open(full_file_path, 'w') as f:
         # 处理格式为自动缩进
 
         json.dump(dicttt, f)
-    return full_file_path
+    return full_folder_path
 
 
 if __name__ == '__main__':
