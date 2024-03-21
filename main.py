@@ -22,11 +22,11 @@ from utils.BOX.box2 import box
 from utils.data import load_data
 from utils.text import text_in_box
 from loss import lid_paced_loss
-from utils.plotfn import plot_lid_seaborn, kn_map_layer
+from utils.plotfn import plot_lid_seaborn, kn_map
 
 logbox = box()
 plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
-plot_kn_map = logbox.log_artifact_autott(kn_map_layer)
+plot_kn_map = logbox.log_artifact_autott(kn_map)
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -88,7 +88,7 @@ def val_epoch(model, data_loader, criterion, device):
     return val_loss, val_accuracy
 
 
-def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
+def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15, epoch=0, model_name='resnet18'):
     '''
     计算LID
     :param model:
@@ -152,8 +152,8 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
     # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
     for label, logits_per_class in logits_list.items():
         # a_class_layer = logits_per_class.keys()
-        for key, value in logits_per_class.items():
-            plot_kn_map(value, label, key, group_size)
+        plot_kn_map(logits_per_class, label, epoch=epoch, group_size=group_size, folder='kn_map',
+                    pre=model_name)
 
 
     # 
@@ -167,7 +167,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device)
         knowes = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
-                                   group_size=args.knowledge_group_size)
+                                   group_size=args.knowledge_group_size, epoch=epoch, model_name=args.model)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
         scheduler.step()

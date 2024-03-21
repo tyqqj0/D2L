@@ -79,11 +79,44 @@ def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     return full_folder_path
 
 
+
+def kn_map(data_epoch, label, epoch, group_size, folder='', pre='', path=None):
+    '''
+    :param data_epoch: 二维数据, (batch_size, feature_dim)
+    :param label_epoch: 一维数据, (batch_size, )
+    :param epoch: int, epoch
+    :param folder: str, 文件夹名称
+    :param path: str, 路径
+    :return: plot
+    '''
+    folder = folder + '/kn_map{:03d}_label{}'.format(epoch, label)
+    file_name = pre + '_' + 'epoch_{:03d}'.format(epoch)
+    # 如果path不为None，则在path中创建文件夹
+
+    if not os.path.exists(path + folder):
+        os.makedirs(path + folder)
+    full_file_path = os.path.join(path, folder, file_name)
+
+    # 运行t-SNE降维
+    for layer, data in data_epoch.items():
+        layer_plt = kn_map_layer(data, label, layer, group_size=group_size)
+        layer_plt.savefig(full_file_path + '_' + layer + '.png')
+        print('Saved plot {}'.format(layer + '.png'))
+
+    # 跑一张整体图，带不同标签
+    # data = np.vstack([data for data in data_epoch.values()])
+    # layer_plt = kn_map_layer(data, label, 'all', group_size=group_size)
+
+    return folder
+
+
+
+
 # 利用t-sne对各层输入数据降维可视化,使用seaborn绘图
 def kn_map_layer(data, label, layer='', group_size=25):
     '''
     :param data: 二维数据, (batch_size, feature_dim)
-    :param label: 一维数据, (batch_size, )
+    :param label: 标量
     :param layer: str, 层名称
     :return: plot
     '''
@@ -119,6 +152,8 @@ def kn_map_layer(data, label, layer='', group_size=25):
     # 设置图表的标题
 
     plt.title(f'{layer} t-SNE')
+
+
 
     # 显示图表
     # plt.show()
