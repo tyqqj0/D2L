@@ -106,6 +106,8 @@ class NoisyDataset(Dataset):
                     # 利用噪声转移矩阵做标签转换
                     self.targets[idx] = torch.tensor(
                         np.random.choice(self.num_classes, 1, p=self.noise_matrix[self.targets[idx]]))
+        else:
+            pass
 
     def __len__(self):
         return len(self.origin_dataset)
@@ -146,6 +148,8 @@ def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MN
         num_classes = 10
         in_channels = 3
         transform = transform_cifar
+    else:
+        raise ValueError("Invalid dataset name. Must be one of ['MNIST', 'CIFAR10'].")
 
     # 通用的数据集加载逻辑
     train_dataset = datasets.__dict__[dataset_name](root=path, train=True, transform=transform, download=True)
@@ -157,6 +161,8 @@ def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MN
         test_dataset = Subset(test_dataset, range(min(max_data, len(test_dataset))))
 
     # 应用噪声
+    if noise_ratio > 0:
+        print(f"Applying {noise_type} noise with noise ratio {noise_ratio}...")
     train_dataset = NoisyDataset(train_dataset, noise_ratio=noise_ratio,
                                  noise_type=noise_type) if noise_ratio > 0 else train_dataset
     test_dataset = test_dataset  # 测试集通常不添加噪声
@@ -165,6 +171,7 @@ def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MN
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
+    print('Data loaded successfully.')
     return train_loader, test_loader, num_classes, in_channels
 
 

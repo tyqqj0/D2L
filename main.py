@@ -21,12 +21,13 @@ from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
 from utils.BOX.box2 import box
 from utils.data import load_data
-from utils.plotfn import plot_lid_seaborn, kn_map
+from utils.plotfn import plot_lid_seaborn, kn_map, plot_wrong_label
 from utils.text import text_in_box
 
 logbox = box()
 plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
 plot_kn_map = logbox.log_artifact_autott(kn_map)
+plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -65,7 +66,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     return train_loss, train_accuracy
 
 
-def val_epoch(model, data_loader, criterion, device):
+def val_epoch(model, data_loader, criterion, device, plot_wrong, epoch=0):
     model.eval()
     running_loss = 0.0
     correct = 0
@@ -77,6 +78,10 @@ def val_epoch(model, data_loader, criterion, device):
             outputs, _ = model(inputs)
 
             loss = criterion(outputs, targets)
+
+            if batch_idx == 0 and plot_wrong > 0:
+                _, predicted = torch.max(outputs.data, 1)
+                plot_wrong_label(inputs, targets, predicted, epoch, folder='wrong_output', max_samples=plot_wrong)
 
             running_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
@@ -168,7 +173,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device)
-        val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device)
+        val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong, epoch=epoch + 1)
         knowes = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
                                    group_size=args.knowledge_group_size, epoch=epoch, model_name=args.model)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
@@ -206,12 +211,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     # MLflow记录参数
     logbox.log_params({
-        'epoch': args.epochs,
         'lr': scheduler.get_last_lr()[0],
-        'momentum': args.momentum,
-        'weight_decay': args.weight_decay
-    })
-
+    }.update(vars(args))) # 将args转换为字典
 
 def main():
     # 设置mlflow

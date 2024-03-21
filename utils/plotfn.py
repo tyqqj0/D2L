@@ -162,3 +162,55 @@ def kn_map_layer(data, label, layer='', group_size=25):
     # plt.show()
 
     return plt
+
+
+
+
+
+# 可视化错误标签
+def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max_samples=10):
+    '''
+    :param data: 二维数据, (batch_size, feature_dim)
+    :param label: 一维数据, (batch_size, )
+    :param pred: 一维数据, (batch_size, )
+    :param epoch: int, epoch
+    :param folder: str, 文件夹名称
+    :param path: str, 路径
+    :return: plot
+    '''
+    folder = folder + '/wrong_label{:03d}'.format(epoch)
+    file_name = pre + '_' + 'epoch_{:03d}'.format(epoch)
+    # 如果path不为None，则在path中创建文件夹
+
+    if not os.path.exists(path + folder):
+        os.makedirs(path + folder)
+    full_file_path = os.path.join(path, folder, file_name)
+
+    # 如果label是one-hot编码，则转换为标量
+    if len(label.shape) > 1:
+        label = np.argmax(label, axis=1)
+
+    # 获取错误标签的索引
+    wrong_idx = np.where(label != pred)[0]
+
+    # 如果错误标签的数量超过最大样本数，则随机选择最大样本数个错误标签
+    if len(wrong_idx) > max_samples:
+        wrong_idx = np.random.choice(wrong_idx, max_samples, replace=False)
+
+    # 选取错误标签的数据和标签
+    data = data[wrong_idx]
+    label = label[wrong_idx]
+    pred = pred[wrong_idx]
+
+    # 创建Seaborn图
+    plt.figure()
+    for i in range(len(data)):
+        plt.subplot(2, 5, i + 1)
+        plt.imshow(data[i], cmap='gray', interpolation='none')
+        plt.title(f'True: {label[i]}\nPred: {pred[i]}')
+        plt.axis('off')
+
+    # 保存图表
+    plt.savefig(full_file_path + '.png')
+
+    return os.path.join(path, folder)

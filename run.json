@@ -105,6 +105,11 @@
             "default": 50,
             "type": "int",
             "help": "knowledge group size"
-        }
+        },
+        "plot_wrong": {
+            "default": 0,
+            "type": "int",
+            "help": "plot wrong images"
+        },
     }
 }

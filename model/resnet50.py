@@ -18,7 +18,8 @@ class ResNet50FeatureExtractor(nn.Module):
     def __init__(self, pretrained=False, num_classes=10, in_channels=1):
         super(ResNet50FeatureExtractor, self).__init__()
         self.resnet50 = models.resnet50(pretrained=pretrained, num_classes=num_classes)
-        self.resnet50.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        if in_channels != 3:
+            self.resnet50.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
         if pretrained:
             conv1_weight = self.resnet50.conv1.weight.data.mean(dim=1, keepdim=True)
