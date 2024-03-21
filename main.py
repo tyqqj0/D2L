@@ -213,9 +213,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     })
 
 
-def main(args):
+def main():
     # 设置mlflow
     # mlflow.set_tracking_uri("http://localhost:5002")
+    args = utils.arg.parser.get_args('run.json')
     global logbox
 
     logbox.set_dataset_name(dataset_name=args.dataset)
@@ -293,6 +294,6 @@ def dict_to_json(dicttt, epoch, folder='knowledge_json', pre='', path=''):
 
 if __name__ == '__main__':
     # args
-    args = utils.arg.parser.get_args('run.json')
+
     # utils.arg.parser.save_parser_to_json(parser)
-    main(args)
+    main()
