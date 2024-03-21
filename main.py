@@ -80,8 +80,8 @@ def val_epoch(model, data_loader, criterion, device, plot_wrong, epoch=0):
             loss = criterion(outputs, targets)
 
             if batch_idx == 0 and plot_wrong > 0:
-                _, predicted = torch.max(outputs.data, 1)
-                plot_wrong_label(inputs, targets, predicted, epoch, folder='wrong_output', max_samples=plot_wrong)
+                # _, predicted = torch.max(outputs.data, 1).cpu().detach()
+                plot_wrong_label(inputs, targets, outputs, epoch, folder='wrong_output', max_samples=plot_wrong)
 
             running_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)

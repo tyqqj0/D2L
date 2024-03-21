@@ -8,10 +8,10 @@
 
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
 
@@ -79,7 +79,6 @@ def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     return full_folder_path
 
 
-
 def kn_map(data_epoch, label, epoch, group_size, folder='', pre='', path=None):
     '''
     :param data_epoch: 二维数据, (batch_size, feature_dim)
@@ -108,8 +107,6 @@ def kn_map(data_epoch, label, epoch, group_size, folder='', pre='', path=None):
     # layer_plt = kn_map_layer(data, label, 'all', group_size=group_size)
 
     return os.path.join(path, folder)
-
-
 
 
 # 利用t-sne对各层输入数据降维可视化,使用seaborn绘图
@@ -156,15 +153,28 @@ def kn_map_layer(data, label, layer='', group_size=25):
 
     plt.title(f'{layer} t-SNE')
 
-
-
     # 显示图表
     # plt.show()
 
     return plt
 
 
+label_of_cifar10 = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
+
+
+def scale_image(image):
+    if image.dtype.kind == 'f':
+        # 归一化到 [0, 1]
+        if image.min() < 0 or image.max() > 1:
+            image = (image - image.min()) / (image.max() - image.min())
+
+    # 如果图像数据是整数
+    elif image.dtype.kind == 'u' or image.dtype.kind == 'i':
+        # 确保数据在 [0, 255] 范围内
+        image = np.clip(image, 0, 255)
+
+    return image
 
 
 # 可视化错误标签
@@ -178,17 +188,23 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     :param path: str, 路径
     :return: plot
     '''
-    folder = folder + '/wrong_label{:03d}'.format(epoch)
+    folder = folder
     file_name = pre + '_' + 'epoch_{:03d}'.format(epoch)
     # 如果path不为None，则在path中创建文件夹
 
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
     full_file_path = os.path.join(path, folder, file_name)
+    label = label.cpu().numpy()
+    pred = pred.cpu().numpy()
+    data = data.cpu().numpy()
 
     # 如果label是one-hot编码，则转换为标量
     if len(label.shape) > 1:
         label = np.argmax(label, axis=1)
+
+    if len(pred.shape) > 1:
+        pred = np.argmax(pred, axis=1)
 
     # 获取错误标签的索引
     wrong_idx = np.where(label != pred)[0]
@@ -197,8 +213,12 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     if len(wrong_idx) > max_samples:
         wrong_idx = np.random.choice(wrong_idx, max_samples, replace=False)
 
+    if len(wrong_idx) == 0:
+        return None
+
     # 选取错误标签的数据和标签
-    data = data[wrong_idx]
+    # print(data.shape)
+    data = np.transpose(data[wrong_idx], (0, 2, 3, 1))
     label = label[wrong_idx]
     pred = pred[wrong_idx]
 
@@ -206,8 +226,8 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     plt.figure()
     for i in range(len(data)):
         plt.subplot(2, 5, i + 1)
-        plt.imshow(data[i], cmap='gray', interpolation='none')
-        plt.title(f'True: {label[i]}\nPred: {pred[i]}')
+        plt.imshow(scale_image(data[i]), cmap='gray', interpolation='none')
+        plt.title(f'True: {label_of_cifar10[label[i]]}\n{label_of_cifar10[pred[i]]}')
         plt.axis('off')
 
     # 保存图表

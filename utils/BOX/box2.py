@@ -105,6 +105,9 @@ class box:
         self.local_run_id = mlflow.start_run(run_name=self.run_name)
         self.running = True
 
+        # 记录运行参数
+        self.log_params(vars(self.arg))
+
         # 初始化缓存文件夹
         if self.cache_dir:
             import os
@@ -158,6 +161,8 @@ class box:
         def wrapper(*args, **kwargs):
             pathtt = self.cache_dir
             result_name = func(*args, path=pathtt, **kwargs)
+            if result_name == None:
+                return result_name
             # 返回 path+folders, 提取folder(去除path)并自动创建文件夹
             folder = result_name.replace(pathtt, '')
             mlflow.log_artifacts(result_name, folder)

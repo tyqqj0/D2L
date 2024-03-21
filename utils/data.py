@@ -137,22 +137,30 @@ def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MN
     ])
     transform_cifar = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+        # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    ])
+    transform_aug = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
     ])
 
     if dataset_name == 'MNIST':
         num_classes = 10
         in_channels = 1
         transform = transform_mnist
+        transform = transform_mnist
     elif dataset_name == 'CIFAR10':
         num_classes = 10
         in_channels = 3
+        transform_t = transform_cifar
         transform = transform_cifar
     else:
         raise ValueError("Invalid dataset name. Must be one of ['MNIST', 'CIFAR10'].")
 
     # 通用的数据集加载逻辑
-    train_dataset = datasets.__dict__[dataset_name](root=path, train=True, transform=transform, download=True)
+    train_dataset = datasets.__dict__[dataset_name](root=path, train=True, transform=transform_t, download=True)
     test_dataset = datasets.__dict__[dataset_name](root=path, train=False, transform=transform)
 
     # 如果设置了max_data，则限制数据集的大小
