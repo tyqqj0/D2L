@@ -10,14 +10,14 @@
 import subprocess
 
 parameters = [
-    ['--model', 'resnet18', '--noise_rate', '0']
-    , ['--model', 'resnet50', '--noise_rate', '0.5']
-    , ['--model', 'resnet18', '--noise_rate', '0.5']
-    , ['--model', 'resnet50', '--noise_rate', '0']
+    ['--model', 'resnet18', '--noise_ratio', '0']
+    , ['--model', 'resnet50', '--noise_ratio', '0.5']
+    , ['--model', 'resnet18', '--noise_ratio', '0.5']
+    , ['--model', 'resnet50', '--noise_ratio', '0']
 ]
 
 for parameter in parameters:
     print(parameter)
     command = ['python', 'main.py'] + parameter
     subprocess.run(command)
-    print('Finish')
+    print('Finish run', parameter)

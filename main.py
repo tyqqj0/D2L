@@ -102,7 +102,7 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
     :param group_size: 计算LID时的每类取数据量, 在分类任务时现阶段使用，后序将计算Y密度/X密度代替
     '''
     if group_size < 2:
-        return {'null': 0}
+        return {'null': 0}, {'null': 0}
     model.eval()
     logits_list = defaultdict(dict)
     # 存储每个类别的logits,defaultdict是一个字典，当字典里的key不存在但被查找时，返回的不是keyEror而是一个默认值
@@ -179,23 +179,6 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))  # , val_lid
         print('knowledge:', knowes)
 
-        # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
-        # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
-        logits = defaultdict()
-        labels = []
-        for label, logits_per_class in logits_list.items():
-            # 拼接每个类别的logits
-            for key, value in logits_per_class.items():
-                if key in logits:
-                    logits[key] = torch.cat((logits[label][key], value), dim=0)
-                    label.extend([label] * value.shape[0])
-                else:
-                    logits[key] = value
-                    label.extend([label] * value.shape[0])
-
-        plot_kn_map(logits, labels, epoch=epoch, folder='kn_map',
-                    pre=args.model + '_' + str(args.noise_ratio) + '_epoch_' + str(epoch + 1))
-
         # mlflow记录
         train_metrics = {
             'loss': train_loss,
@@ -210,10 +193,36 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('knowledge', knowes, step=epoch + 1)
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
+
+            # 绘制knows图像
             plot_lid_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
+
+            # 保存knows参数文件数
             dict_to_json(knowes.update(
                 {'info:model': args.model, 'info:noise_ratio': args.noise_ratio, 'info:data_set': args.dataset}),
                 epoch + 1, pre=args.model + '_' + str(int(args.noise_ratio * 100)))
+
+            # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
+            # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
+            if args.knowledge_group_size > 1:
+                logits = {}  # defaultdict(torch.Tensor)
+                labels = []
+                for label, logits_per_class in logits_list.items():
+                    # 拼接每个类别的logits
+                    for key, value in logits_per_class.items():
+                        if label not in labels:
+                            labels.extend([label] * value.shape[0])  # labels.extend([label] * value.shape[0])
+                        if key in logits:
+                            logits[key] = torch.cat((logits[key], value), dim=0)
+
+                        else:
+                            # print(key)
+                            logits[key] = value
+
+                            # print([label] * value.shape[0])
+                # print(logits[key].shape, len(labels))
+                plot_kn_map(logits, labels, epoch=epoch, folder='kn_map',
+                            pre=args.model + '_' + str(args.noise_ratio) + '_epoch_' + str(epoch + 1))
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
@@ -221,8 +230,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     # MLflow记录参数
     logbox.log_params({
-                          'lr': scheduler.get_last_lr()[0],
-                      }.update(vars(args)))  # 将args转换为字典
+        'lr': scheduler.get_last_lr()[0],
+    })  # 将args转换为字典
 
 
 def main():

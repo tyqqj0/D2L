@@ -149,7 +149,7 @@ def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MN
     if dataset_name == 'MNIST':
         num_classes = 10
         in_channels = 1
-        transform = transform_mnist
+        transform_t = transform_mnist
         transform = transform_mnist
     elif dataset_name == 'CIFAR10':
         num_classes = 10

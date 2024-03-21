@@ -172,7 +172,8 @@ class box:
 
     def log_params(self, params, pre=''):
         # 记录参数
-
+        if params is None:
+            return
         mlflow.log_params(params)
 
     def save_model(self, model, epoch, path=None):

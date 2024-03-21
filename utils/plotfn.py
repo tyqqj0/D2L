@@ -136,6 +136,7 @@ def kn_map_layer(data, label, layer='', group_size=25):
 
     # 将降维后的数据和标签转换为DataFrame, 用label作为hue, 即颜色
     df = pd.DataFrame(data_tsne, columns=['Dim1', 'Dim2'])
+    # print(data.shape, len(label))
     df['label'] = label
 
     # 使用Seaborn设置风格
@@ -160,7 +161,6 @@ def kn_map_layer(data, label, layer='', group_size=25):
 
 
 label_of_cifar10 = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-
 
 
 def scale_image(image):
@@ -232,5 +232,7 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
 
     # 保存图表
     plt.savefig(full_file_path + '.png')
+
+    plt.close()
 
     return os.path.join(path, folder)
