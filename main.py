@@ -93,7 +93,7 @@ def val_epoch(model, data_loader, criterion, device, plot_wrong, epoch=0):
     return val_loss, val_accuracy
 
 
-def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15, epoch=0, model_name='resnet18'):
+def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
     '''
     计算LID
     :param model:
@@ -156,16 +156,8 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15, e
     for key in lidses.keys():
         lidses[key] = lidses[key] / len(class_lidses)
 
-    # # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
-    # for label, logits_per_class in logits_list.items():
-    #     # a_class_layer = logits_per_class.keys()
-    #     if label != 6:
-    #         continue
-    #     plot_kn_map(logits_per_class, label, epoch=epoch, group_size=group_size, folder='kn_map',
-    #                 pre=model_name)
-
     #
-    return lidses
+    return lidses, logits_list
 
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
@@ -173,9 +165,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device)
-        val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong, epoch=epoch + 1)
-        knowes = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
-                                   group_size=args.knowledge_group_size, epoch=epoch, model_name=args.model)
+        val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
+                                           epoch=epoch + 1)
+        knowes, logits_list = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
+                                                group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
         scheduler.step()
@@ -185,6 +178,23 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))  # , train_lid
         print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))  # , val_lid
         print('knowledge:', knowes)
+
+        # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
+        # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
+        logits = defaultdict()
+        labels = []
+        for label, logits_per_class in logits_list.items():
+            # 拼接每个类别的logits
+            for key, value in logits_per_class.items():
+                if key in logits:
+                    logits[key] = torch.cat((logits[label][key], value), dim=0)
+                    label.extend([label] * value.shape[0])
+                else:
+                    logits[key] = value
+                    label.extend([label] * value.shape[0])
+
+        plot_kn_map(logits, labels, epoch=epoch, folder='kn_map',
+                    pre=args.model + '_' + str(args.noise_ratio) + '_epoch_' + str(epoch + 1))
 
         # mlflow记录
         train_metrics = {
@@ -211,8 +221,9 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     # MLflow记录参数
     logbox.log_params({
-        'lr': scheduler.get_last_lr()[0],
-    }.update(vars(args))) # 将args转换为字典
+                          'lr': scheduler.get_last_lr()[0],
+                      }.update(vars(args)))  # 将args转换为字典
+
 
 def main():
     # 设置mlflow

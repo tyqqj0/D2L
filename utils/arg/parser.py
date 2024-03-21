@@ -108,6 +108,8 @@ class ArgParser:
         """Parses the command line arguments using the created 'argparse.ArgumentParser' instance."""
         args, _ = self.parser.parse_known_args()
         self.args = args
+        # 获得与默认值不同的参数
+        print({k: v for k, v in vars(args).items() if v != self.parser.get_default(k)})
         return args
 
     def get_parser(self):

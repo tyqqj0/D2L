@@ -8,10 +8,10 @@
 
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
 
@@ -79,7 +79,7 @@ def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     return full_folder_path
 
 
-def kn_map(data_epoch, label, epoch, group_size, folder='', pre='', path=None):
+def kn_map(data_epoch, label, epoch, group_size=25, folder='', pre='', path=None):
     '''
     :param data_epoch: 二维数据, (batch_size, feature_dim)
     :param label_epoch: 一维数据, (batch_size, )
@@ -88,7 +88,7 @@ def kn_map(data_epoch, label, epoch, group_size, folder='', pre='', path=None):
     :param path: str, 路径
     :return: plot
     '''
-    folder = folder + '/kn_map{:03d}_label{}'.format(epoch, label)
+    folder = folder + '/kn_map{:03d}'.format(epoch)
     file_name = pre + '_' + 'epoch_{:03d}'.format(epoch)
     # 如果path不为None，则在path中创建文件夹
 
@@ -134,7 +134,7 @@ def kn_map_layer(data, label, layer='', group_size=25):
     tsne = TSNE(n_components=2, perplexity=min(group_size * 2 / 4, data.shape[0]), n_iter=1000)
     data_tsne = tsne.fit_transform(data)
 
-    # 将降维后的数据和标签转换为DataFrame
+    # 将降维后的数据和标签转换为DataFrame, 用label作为hue, 即颜色
     df = pd.DataFrame(data_tsne, columns=['Dim1', 'Dim2'])
     df['label'] = label
 
@@ -225,7 +225,7 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     # 创建Seaborn图
     plt.figure()
     for i in range(len(data)):
-        plt.subplot(2, 5, i + 1)
+        plt.subplot(1, 6, i + 1)
         plt.imshow(scale_image(data[i]), cmap='gray', interpolation='none')
         plt.title(f'True: {label_of_cifar10[label[i]]}\n{label_of_cifar10[pred[i]]}')
         plt.axis('off')
