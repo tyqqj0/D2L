@@ -7,9 +7,12 @@
 
 
 import os
+
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
 
 def plot_lid_plt(lidss, epoch, y_lim=None, folder='', pre='', path=None):
@@ -48,6 +51,9 @@ def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     # 使用Seaborn设置风格
     sns.set_theme(style="whitegrid")
 
+    # 使用Seaborn设置调色板
+    sns.set_palette("pastel")
+
     # 创建Seaborn条形图
     plt.figure()
     barplot = sns.barplot(x='Layers', y='Values', data=data, ci=None)
@@ -71,3 +77,50 @@ def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     plt.close()
 
     return full_folder_path
+
+
+# 利用t-sne对各层输入数据降维可视化,使用seaborn绘图
+def kn_map_layer(data, label, layer='', group_size=25):
+    '''
+    :param data: 二维数据, (batch_size, feature_dim)
+    :param label: 一维数据, (batch_size, )
+    :param layer: str, 层名称
+    :return: plot
+    '''
+    # 检查输入数据的维度
+    if len(data.shape) != 2:
+        raise ValueError("Data should be 2D array.")
+
+    if len(label.shape) != 1:
+        raise ValueError("Label should be 1D array.")
+
+    if data.shape[0] != label.shape[0]:
+        raise ValueError("Data and label must have the same number of samples.")
+
+    # 运行t-SNE降维
+    tsne = TSNE(n_components=2, perplexity=group_size, n_iter=1000)
+    data_tsne = tsne.fit_transform(data)
+
+    # 将降维后的数据和标签转换为DataFrame
+    df = pd.DataFrame(data_tsne, columns=['Dim1', 'Dim2'])
+    df['label'] = label
+
+    # 使用Seaborn设置风格
+    sns.set_theme(style="whitegrid")
+
+    # 使用Seaborn设置调色板
+    sns.set_palette("pastel")
+
+    # 创建Seaborn散点图
+    plt.figure()
+
+    scatter = sns.scatterplot(x='Dim1', y='Dim2', hue='label', data=df, palette="deep")
+
+    # 设置图表的标题
+
+    plt.title(f'{layer} t-SNE')
+
+    # 显示图表
+    # plt.show()
+
+    return plt

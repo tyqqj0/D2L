@@ -22,10 +22,11 @@ from utils.BOX.box2 import box
 from utils.data import load_data
 from utils.text import text_in_box
 from loss import lid_paced_loss
-from utils.plotfn import plot_lid_seaborn
+from utils.plotfn import plot_lid_seaborn, kn_map_layer
 
 logbox = box()
 plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
+plot_kn_map = logbox.log_artifact_autott(kn_map_layer)
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -147,6 +148,15 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
             lidses[key] += value
     for key in lidses.keys():
         lidses[key] = lidses[key] / len(class_lidses)
+
+    # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
+    for label, logits_per_class in logits_list.items():
+        # a_class_layer = logits_per_class.keys()
+        for key, value in logits_per_class.items():
+            plot_kn_map(value, label, key, group_size)
+
+
+    # 
     return lidses
 
 
@@ -183,7 +193,9 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
             plot_lid_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
-            # plot_lid_all(train_lid[1], epoch + 1, y_lim=0.025, folder='train_lid_pr', pre='lid_pr')
+            dict_to_json(knowes.update(
+                {'info:model': args.model, 'info:noise_ratio': args.noise_ratio, 'info:data_set': args.dataset}),
+                epoch + 1, pre=args.model + '_' + str(args.noise_ratio))
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
@@ -256,8 +268,23 @@ def main(args):
     # mlflow.end_run()
 
 
+# 将knowledge的字典转换为json并保存提交
+@logbox.log_artifact_autott
+def dict_to_json(dicttt, epoch, folder='knowledge_json', pre='', path=''):
+    import json
+    import os
+    file_name = pre + '_' + 'epoch_{:03d}.json'.format(epoch)
+    # 如果path不为None，则在path中创建文件夹
+    full_folder_path = os.path.join(path, folder) if path is not None else folder
+    if not os.path.exists(full_folder_path):
+        os.makedirs(full_folder_path)
+    full_file_path = os.path.join(full_folder_path, file_name)
 
+    with open(full_file_path, 'w') as f:
+        # 处理格式为自动缩进
 
+        json.dump(dicttt, f)
+    return full_file_path
 
 
 if __name__ == '__main__':
