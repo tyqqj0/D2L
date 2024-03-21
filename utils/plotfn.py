@@ -120,6 +120,8 @@ def kn_map_layer(data, label, layer='', group_size=25):
     :param layer: str, 层名称
     :return: plot
     '''
+
+    data = data.cpu().detach().numpy()
     # 检查输入数据的维度
     if len(data.shape) != 2:
         raise ValueError("Data should be 2D array.")

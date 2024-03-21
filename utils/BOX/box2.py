@@ -158,7 +158,9 @@ class box:
         def wrapper(*args, **kwargs):
             pathtt = self.cache_dir
             result_name = func(*args, path=pathtt, **kwargs)
-            mlflow.log_artifacts(result_name)
+            # 返回 path+folders, 提取folder(去除path)并自动创建文件夹
+            folder = result_name.replace(pathtt, '')
+            mlflow.log_artifacts(result_name, folder)
             return result_name
 
         return wrapper  # 返回装饰器, 规范装饰器的使用
