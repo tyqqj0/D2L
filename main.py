@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+from torch.cuda.amp import autocast, GradScaler
 
 import utils.arg.parser
 from LID import get_lids_batches
@@ -30,7 +31,7 @@ plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
 
 
-def train_epoch(model, data_loader, optimizer, criterion, device):
+def train_epoch(model, data_loader, optimizer, criterion, device, scaler=None):
     model.train()
     running_loss = 0.0
     correct = 0
@@ -43,13 +44,20 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
         inputs, targets = inputs.to(device), targets.to(device)
 
         optimizer.zero_grad()
-        outputs, _ = model(inputs)
-
-        # print('outputs:', outputs.shape, 'targets:', targets.shape)
-        loss = criterion(outputs, targets)
-        # print(f"{batch_idx}: loss:", loss.item())
-        loss.backward()
-        optimizer.step()
+        if scaler is not None:
+            with autocast():
+                outputs, _ = model(inputs)
+                # print('outputs:', outputs.shape, 'targets:', targets.shape)
+                loss = criterion(outputs, targets)
+            # print(f"{batch_idx}: loss:", loss.item())
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)#.step()
+            scaler.update()
+        else:
+            outputs, _ = model(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
 
         running_loss += loss.item()
         _, predicted = torch.max(outputs.data, 1)
@@ -107,54 +115,54 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
     logits_list = defaultdict(dict)
     # 存储每个类别的logits,defaultdict是一个字典，当字典里的key不存在但被查找时，返回的不是keyEror而是一个默认值
     class_counts = [0] * num_class  # 记录每个类别收集的样本数
+    with autocast():
+        with torch.no_grad():
+            for inputs, targets in data_loader:
+                inputs, targets = inputs.to(device), targets.to(device)
+                # 如果targets不是一维的，就转换成一维的softmax
+                if len(targets.size()) > 1:
+                    targets = torch.argmax(targets, dim=1)
 
-    with torch.no_grad():
-        for inputs, targets in data_loader:
-            inputs, targets = inputs.to(device), targets.to(device)
-            # 如果targets不是一维的，就转换成一维的softmax
-            if len(targets.size()) > 1:
-                targets = torch.argmax(targets, dim=1)
+                # optimizer.zero_grad()
+                outputs, logits = model(inputs)  # 假设模型返回的最后一个元素是logits
 
-            # optimizer.zero_grad()
-            outputs, logits = model(inputs)  # 假设模型返回的最后一个元素是logits
-
-            # 遍历batch中的每个样本
-            for idx, target in enumerate(targets):
-                label = target.item()
-                # 检查是否已经有足够的样本
-                if class_counts[label] < group_size:
-                    # 此处logits_list[label]应该是一个字典,结构为{'layer_name', data_tensor}应在data_tensor处拼接新的logits
-                    for key, value in logits.items():
-                        # logits_list
-                        if key in logits_list[label]:
-                            logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
-                                                                dim=0)
-                        else:
-                            logits_list[label][key] = value[idx].unsqueeze(0)
-                    class_counts[label] += 1
+                # 遍历batch中的每个样本
+                for idx, target in enumerate(targets):
+                    label = target.item()
+                    # 检查是否已经有足够的样本
+                    if class_counts[label] < group_size:
+                        # 此处logits_list[label]应该是一个字典,结构为{'layer_name', data_tensor}应在data_tensor处拼接新的logits
+                        for key, value in logits.items():
+                            # logits_list
+                            if key in logits_list[label]:
+                                logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
+                                                                    dim=0)
+                            else:
+                                logits_list[label][key] = value[idx].unsqueeze(0)
+                        class_counts[label] += 1
+                    # 如果每个类别都收集到了足够的样本，就退出
+                    if all(count >= group_size for count in class_counts):
+                        break
                 # 如果每个类别都收集到了足够的样本，就退出
                 if all(count >= group_size for count in class_counts):
                     break
-            # 如果每个类别都收集到了足够的样本，就退出
-            if all(count >= group_size for count in class_counts):
-                break
 
-    # 计算每个类别的LID
-    class_lidses = []
-    for label, logits_per_class in logits_list.items():
-        # 假设get_lids_batches是计算LID的函数
-        # 这里需要将logits转换为tensor，因为它目前是一个列表
-        # tensor_logits = torch.stack(logits_per_class)
-        # print(logits_per_class.shape)
-        class_lidses.append(get_lids_batches(logits_per_class))
+        # 计算每个类别的LID
+        class_lidses = []
+        for label, logits_per_class in logits_list.items():
+            # 假设get_lids_batches是计算LID的函数
+            # 这里需要将logits转换为tensor，因为它目前是一个列表
+            # tensor_logits = torch.stack(logits_per_class)
+            # print(logits_per_class.shape)
+            class_lidses.append(get_lids_batches(logits_per_class))
 
-    # 求class_lidses的平均值
-    lidses = {key: 0 for key in class_lidses[0].keys()}
-    for a_lids in class_lidses:
-        for key, value in a_lids.items():
-            lidses[key] += value
-    for key in lidses.keys():
-        lidses[key] = lidses[key] / len(class_lidses)
+        # 求class_lidses的平均值
+        lidses = {key: 0 for key in class_lidses[0].keys()}
+        for a_lids in class_lidses:
+            for key, value in a_lids.items():
+                lidses[key] += value
+        for key in lidses.keys():
+            lidses[key] = lidses[key] / len(class_lidses)
 
     #
     return lidses, logits_list
@@ -164,7 +172,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     for epoch in range(args.epochs):
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
-        train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device)
+        train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device, scaler=GradScaler() if args.amp else None)
         val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
                                            epoch=epoch + 1)
         knowes, logits_list = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
@@ -221,8 +229,9 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
                             # print([label] * value.shape[0])
                 # print(logits[key].shape, len(labels))
-                plot_kn_map(logits, labels, epoch=epoch, folder='kn_map',
-                            pre=args.model + '_' + str(args.noise_ratio) + '_epoch_' + str(epoch + 1))
+                with autocast():
+                    plot_kn_map(logits, labels, epoch=epoch, folder='kn_map',
+                                pre=args.model + '_' + str(args.noise_ratio) + '_epoch_' + str(epoch + 1))
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
