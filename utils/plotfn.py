@@ -178,7 +178,7 @@ def scale_image(image):
 
 
 # 可视化错误标签
-def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max_samples=10):
+def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max_samples=10, replace_label=False):
     '''
     :param data: 二维数据, (batch_size, feature_dim)
     :param label: 一维数据, (batch_size, )
@@ -226,7 +226,7 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     plt.figure()
     for i in range(len(data)):
         plt.subplot(1, 6, i + 1)
-        plt.imshow(scale_image(data[i]), cmap='gray', interpolation='none')
+        plt.imshow(scale_image(data[i]) if replace_label else data[i], cmap='gray', interpolation='none')
         plt.title(f'True: {label_of_cifar10[label[i]]}\n{label_of_cifar10[pred[i]]}')
         plt.axis('off')
 

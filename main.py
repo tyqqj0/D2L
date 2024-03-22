@@ -12,8 +12,8 @@ from collections import defaultdict
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tqdm import tqdm
 from torch.cuda.amp import autocast, GradScaler
+from tqdm import tqdm
 
 import utils.arg.parser
 from LID import get_lids_batches
@@ -51,7 +51,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device, scaler=None):
                 loss = criterion(outputs, targets)
             # print(f"{batch_idx}: loss:", loss.item())
             scaler.scale(loss).backward()
-            scaler.step(optimizer)#.step()
+            scaler.step(optimizer)  # .step()
             scaler.update()
         else:
             outputs, _ = model(inputs)
@@ -74,7 +74,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device, scaler=None):
     return train_loss, train_accuracy
 
 
-def val_epoch(model, data_loader, criterion, device, plot_wrong, epoch=0):
+def val_epoch(model, data_loader, criterion, device, plot_wrong, epoch=0, replace_label=True):
     model.eval()
     running_loss = 0.0
     correct = 0
@@ -89,7 +89,8 @@ def val_epoch(model, data_loader, criterion, device, plot_wrong, epoch=0):
 
             if batch_idx == 0 and plot_wrong > 0:
                 # _, predicted = torch.max(outputs.data, 1).cpu().detach()
-                plot_wrong_label(inputs, targets, outputs, epoch, folder='wrong_output', max_samples=plot_wrong)
+                plot_wrong_label(inputs, targets, outputs, epoch, folder='wrong_output', max_samples=plot_wrong,
+                                 replace_label=replace_label)
 
             running_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
@@ -172,9 +173,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     for epoch in range(args.epochs):
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
-        train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device, scaler=GradScaler() if args.amp else None)
+        train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device,
+                                                 scaler=GradScaler() if args.amp else None)
         val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
-                                           epoch=epoch + 1)
+                                           epoch=epoch + 1, replace_label=(args.model != 'MNIST'))
         knowes, logits_list = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
                                                 group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':

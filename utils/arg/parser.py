@@ -155,7 +155,8 @@ def parser_to_json(parser, dfname):
         # Convert type to string representation
 
         # Only include action for boolean switches
-        if type(action).__name__ == '_StoreTrueAction' or type(action).__name__ == '_StoreFalseAction':
+        if type(action).__name__ == '_StoreTrueAction' or type(action).__name__ == '_StoreFalseAction' or type(
+                action).__name__ == 'store_true' or type(action).__name__ == 'store_false':
             action_dict['action'] = 'store_true' if type(action).__name__ == '_StoreTrueAction' else 'store_false'
         # Remove leading '--' from argument name
         parser_dict["DEFAULT"][action.dest] = action_dict

@@ -92,7 +92,7 @@
             "help": "cache directory"
         },
         "plot_interval": {
-            "default": 2,
+            "default": 15,
             "type": "int",
             "help": "plot interval"
         },
@@ -112,7 +112,8 @@
             "help": "plot wrong images"
         },
         "amp": {
-            "store_true": true,
+            "type": "store_true",
+            "action": "store_true",
             "help": "use amp",
             "default": true
         }

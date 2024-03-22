@@ -9,6 +9,9 @@
 # from main import main
 import subprocess
 
+
+all = ['--amp']
+
 parameters = [
     ['--model', 'resnet18', '--noise_ratio', '0']
     , ['--model', 'resnet50', '--noise_ratio', '0.5']
@@ -17,7 +20,7 @@ parameters = [
 ]
 
 for parameter in parameters:
-    print(parameter)
-    command = ['python', 'main.py'] + parameter
+    print(parameter + all)
+    command = ['python', 'main.py'] + parameter + all
     subprocess.run(command)
     print('Finish run', parameter)
