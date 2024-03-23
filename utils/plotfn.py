@@ -99,7 +99,7 @@ def kn_map(data_epoch, label, epoch, group_size=25, folder='', pre='', path=None
     # 运行t-SNE降维
     for layer, data in data_epoch.items():
         layer_plt = kn_map_layer(data, label, layer, group_size=group_size)
-        layer_plt.savefig(full_file_path + '_' + layer + '.png')
+        layer_plt.savefig(full_file_path + '_' + pre + '_' + layer + '.png')
         print('Saved plot {}'.format(layer + '.png'))
 
     # 跑一张整体图，带不同标签
@@ -135,7 +135,7 @@ def kn_map_layer(data, label, layer='', group_size=25):
     data_tsne = tsne.fit_transform(data)
 
     # 将降维后的数据和标签转换为DataFrame, 用label作为hue, 即颜色
-    df = pd.DataFrame(data_tsne, columns=['Dim1', 'Dim2'])
+    df = pd.DataFrame(data_tsne)
     # print(data.shape, len(label))
     df['label'] = label
 
@@ -149,6 +149,9 @@ def kn_map_layer(data, label, layer='', group_size=25):
     plt.figure()
 
     scatter = sns.scatterplot(x='Dim1', y='Dim2', hue='label', data=df, palette="deep")
+
+    # 缩小边框
+    plt.tight_layout()
 
     # 设置图表的标题
 

@@ -213,27 +213,9 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                 epoch + 1, pre=args.model + '_' + str(int(args.noise_ratio * 100)))
 
             # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
-            # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
+
             if args.knowledge_group_size > 1:
-                logits = {}  # defaultdict(torch.Tensor)
-                labels = []
-                for label, logits_per_class in logits_list.items():
-                    # 拼接每个类别的logits
-                    for key, value in logits_per_class.items():
-                        if label not in labels:
-                            labels.extend([label] * value.shape[0])  # labels.extend([label] * value.shape[0])
-                        if key in logits:
-                            logits[key] = torch.cat((logits[key], value), dim=0)
-
-                        else:
-                            # print(key)
-                            logits[key] = value
-
-                            # print([label] * value.shape[0])
-                # print(logits[key].shape, len(labels))
-                with autocast():
-                    plot_kn_map(logits, labels, epoch=epoch, folder='kn_map',
-                                pre=args.model + '_' + str(args.noise_ratio) + '_epoch_' + str(epoch + 1))
+                plot_kmp(epoch, logits_list, model_name=args.model, noise_ratio=args.noise_ratio, folder='kn_map')
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
@@ -243,6 +225,29 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     logbox.log_params({
         'lr': scheduler.get_last_lr()[0],
     })  # 将args转换为字典
+
+
+def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):
+    logits = {}  # defaultdict(torch.Tensor)
+    labels = []
+    # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
+    for label, logits_per_class in logits_list.items():
+        # 拼接每个类别的logits
+        for key, value in logits_per_class.items():
+            if label not in labels:
+                labels.extend([label] * value.shape[0])  # labels.extend([label] * value.shape[0])
+            if key in logits:
+                logits[key] = torch.cat((logits[key], value), dim=0)
+
+            else:
+                # print(key)
+                logits[key] = value
+
+                # print([label] * value.shape[0])
+    # print(logits[key].shape, len(labels))
+    with autocast():
+        plot_kn_map(logits, labels, epoch=epoch, folder=folder,
+                    pre=model_name + '_' + str(noise_ratio) + '_epoch_' + str(epoch + 1))
 
 
 def main():
