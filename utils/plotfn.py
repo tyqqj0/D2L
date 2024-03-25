@@ -8,10 +8,10 @@
 
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
 
@@ -111,55 +111,52 @@ def kn_map(data_epoch, label, epoch, group_size=25, folder='', pre='', path=None
 
 # 利用t-sne对各层输入数据降维可视化,使用seaborn绘图
 def kn_map_layer(data, label, layer='', group_size=25):
-    '''
+    """
     :param data: 二维数据, (batch_size, feature_dim)
-    :param label: 标量
+    :param label: 一维标签数组
     :param layer: str, 层名称
+    :param group_size: t-SNE的perplexity参数将基于此值进行设置
     :return: plot
-    '''
+    """
 
-    # data = data.cpu().detach().numpy()
-    # 检查输入数据的维度
+    # 确保数据是二维的
     if len(data.shape) != 2:
         raise ValueError("Data should be 2D array.")
 
+    # 将数据从PyTorch张量转换为NumPy数组
     data = data.cpu().detach().numpy()
+
+    # # 确保标签是一维的
     # if len(label.shape) != 1:
     #     raise ValueError("Label should be 1D array.")
 
+    # # 确保数据和标签的样本数目相同
     # if data.shape[0] != label.shape[0]:
     #     raise ValueError("Data and label must have the same number of samples.")
 
     # 运行t-SNE降维
-    tsne = TSNE(n_components=2, perplexity=min(group_size * 2 / 4, data.shape[0]), n_iter=1000)
+    tsne = TSNE(n_components=2, perplexity=min(group_size * 2 / 3, data.shape[0] / 3), n_iter=1000)
     data_tsne = tsne.fit_transform(data)
 
-    # 将降维后的数据和标签转换为DataFrame, 用label作为hue, 即颜色
-    df = pd.DataFrame(data_tsne)
-    # print(data.shape, len(label))
+    # 将降维后的数据和标签转换为DataFrame
+    df = pd.DataFrame(data_tsne, columns=['Dim1', 'Dim2'])
     df['label'] = label
 
-    # 使用Seaborn设置风格
+    # 使用Seaborn设置风格和调色板
     sns.set_theme(style="whitegrid")
-
-    # 使用Seaborn设置调色板
     sns.set_palette("pastel")
 
     # 创建Seaborn散点图
-    plt.figure()
+    plt.figure(figsize=(8, 6))
+    scatter = sns.scatterplot(x='Dim1', y='Dim2', hue='label', data=df, palette="deep", legend='full')
 
-    scatter = sns.scatterplot(x='Dim1', y='Dim2', hue='label', data=df, palette="deep")
-
-    # 缩小边框
-    plt.tight_layout()
+    # 不显示坐标轴名称
+    plt.axis('off')
 
     # 设置图表的标题
-
     plt.title(f'{layer} t-SNE')
 
-    # 显示图表
-    # plt.show()
-
+    # 返回matplotlib的plt对象，调用者可以使用plt.show()来显示或保存图像
     return plt
 
 

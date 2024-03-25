@@ -223,7 +223,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     # MLflow记录参数
     logbox.log_params({
-        'lr': scheduler.get_last_lr()[0],
+        'lr_finel': scheduler.get_last_lr()[0],
     })  # 将args转换为字典
 
 

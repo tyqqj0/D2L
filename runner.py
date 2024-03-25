@@ -9,14 +9,16 @@
 # from main import main
 import subprocess
 
-
-all = ['--amp']
+all = ['--amp',
+       'run_name', 'noisy_test'  # ,
+       # '--exp_name', 'noisy_test'
+       ]
 
 parameters = [
-    ['--model', 'resnet18', '--noise_ratio', '0']
-    , ['--model', 'resnet50', '--noise_ratio', '0.5']
-    , ['--model', 'resnet18', '--noise_ratio', '0.5']
-    , ['--model', 'resnet50', '--noise_ratio', '0']
+    # ['--model', 'resnet18', '--noise_ratio', '0'],
+    ['--model', 'resnet50', '--noise_ratio', '1'],
+    # ['--model', 'resnet18', '--noise_ratio', '0.5'],
+    ['--model', 'resnet50', '--noise_ratio', '0']
 ]
 
 for parameter in parameters:
