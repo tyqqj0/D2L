@@ -138,11 +138,15 @@ def kn_map_layer(data, label, layer='', group_size=25):
     tsne = TSNE(n_components=2, perplexity=min(group_size * 2 / 3, data.shape[0] / 3), n_iter=1000)
     data_tsne = tsne.fit_transform(data)
 
-    # 将降维后的数据和标签转换为DataFrame
+    # 将降维后的数据和标签转换为DataFrame, 用label作为hue, 即颜色
     df = pd.DataFrame(data_tsne, columns=['Dim1', 'Dim2'])
     df['label'] = label
 
     # 使用Seaborn设置风格和调色板
+    # 不画轴名称
+    plt.axis('off')
+
+    # 使用Seaborn设置风格
     sns.set_theme(style="whitegrid")
     sns.set_palette("pastel")
 

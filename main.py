@@ -177,7 +177,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                                  scaler=GradScaler() if args.amp else None)
         val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
                                            epoch=epoch + 1, replace_label=(args.model != 'MNIST'))
-        knowes, logits_list = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
+        knowes, logits_list = lid_compute_epoch(model, test_loader, device, num_class=args.num_classes,
                                                 group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
