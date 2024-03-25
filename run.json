@@ -1,121 +1,131 @@
 {
-    "name": "parser",
-    "DEFAULT": {
-        "dataset": {
-            "default": "MNIST",
-            "type": "str",
-            "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
-        },
-        "noise_ratio": {
-            "default": 0,
-            "type": "float",
-            "help": "corruption ratio, should be less than 1"
-        },
-        "model": {
-            "default": "resnet50",
-            "type": "str",
-            "help": "model type: resnet18 / resnet50"
-        },
-        "num_classes": {
-            "default": -1,
-            "type": "int",
-            "help": "number of classes, automatically set"
-        },
-        "max_data": {
-            "default": 2048,
-            "type": "int",
-            "help": "max number of data"
-        },
-        "noise_type": {
-            "default": "sym",
-            "type": "str",
-            "help": "[sym/asym]"
-        },
-        "batch_size": {
-            "default": 128,
-            "type": "int",
-            "help": "batch size"
-        },
-        "epochs": {
-            "default": 100,
-            "type": "int",
-            "help": "number of total epochs to run"
-        },
-        "lr": {
-            "default": 0.1,
-            "type": "float",
-            "help": "learning rate"
-        },
-        "momentum": {
-            "default": 0,
-            "type": "float",
-            "help": "momentum"
-        },
-        "weight_decay": {
-            "default": 0.0001,
-            "type": "float",
-            "help": "weight decay (default: 1e-4)"
-        },
-        "k": {
-            "default": 50,
-            "type": "int",
-            "help": "number of nearest neighbors"
-        },
-        "save_interval": {
-            "default": -1,
-            "type": "int",
-            "help": "save interval"
-        },
-        "exp_name": {
-            "default": "train_knowledge",
-            "type": "str",
-            "help": "exp name"
-        },
-        "run_name": {
-            "default": "knowledge_2",
-            "type": "str",
-            "help": "run name"
-        },
-        "gpu": {
-            "default": "0",
-            "type": "str",
-            "help": "gpu device ids for CUDA_VISIBLE_DEVICES"
-        },
-        "in_channels": {
-            "default": -1,
-            "type": "int",
-            "help": "input channels"
-        },
-        "cache_dir": {
-            "default": "./cache/",
-            "type": "str",
-            "help": "cache directory"
-        },
-        "plot_interval": {
-            "default": 15,
-            "type": "int",
-            "help": "plot interval"
-        },
-        "lossfn": {
-            "default": "ce",
-            "type": "str",
-            "help": "loss function, l2d, ce"
-        },
-        "knowledge_group_size": {
-            "default": 25,
-            "type": "int",
-            "help": "knowledge group size"
-        },
-        "plot_wrong": {
-            "default": 4,
-            "type": "int",
-            "help": "plot wrong images"
-        },
-        "amp": {
-            "type": "store_true",
-            "action": "store_true",
-            "help": "use amp",
-            "default": true
-        }
+  "name": "parser",
+  "DEFAULT": {
+    "dataset": {
+      "default": "MNIST",
+      "type": "str",
+      "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
+    },
+    "noise_ratio": {
+      "default": 0,
+      "type": "float",
+      "help": "corruption ratio, should be less than 1"
+    },
+    "model": {
+      "default": "resnet50",
+      "type": "str",
+      "help": "model type: resnet18 / resnet50"
+    },
+    "num_classes": {
+      "default": -1,
+      "type": "int",
+      "help": "number of classes, automatically set"
+    },
+    "max_data": {
+      "default": 2048,
+      "type": "int",
+      "help": "max number of data"
+    },
+    "noise_type": {
+      "default": "sym",
+      "type": "str",
+      "help": "[sym/asym]"
+    },
+    "batch_size": {
+      "default": 128,
+      "type": "int",
+      "help": "batch size"
+    },
+    "epochs": {
+      "default": 100,
+      "type": "int",
+      "help": "number of total epochs to run"
+    },
+    "lr": {
+      "default": 0.1,
+      "type": "float",
+      "help": "learning rate"
+    },
+    "momentum": {
+      "default": 0,
+      "type": "float",
+      "help": "momentum"
+    },
+    "weight_decay": {
+      "default": 0.0001,
+      "type": "float",
+      "help": "weight decay (default: 1e-4)"
+    },
+    "k": {
+      "default": 50,
+      "type": "int",
+      "help": "number of nearest neighbors"
+    },
+    "save_interval": {
+      "default": -1,
+      "type": "int",
+      "help": "save interval"
+    },
+    "exp_name": {
+      "default": "train_knowledge",
+      "type": "str",
+      "help": "exp name"
+    },
+    "run_name": {
+      "default": "knowledge_2",
+      "type": "str",
+      "help": "run name"
+    },
+    "gpu": {
+      "default": "0",
+      "type": "str",
+      "help": "gpu device ids for CUDA_VISIBLE_DEVICES"
+    },
+    "in_channels": {
+      "default": -1,
+      "type": "int",
+      "help": "input channels"
+    },
+    "cache_dir": {
+      "default": "./cache/",
+      "type": "str",
+      "help": "cache directory"
+    },
+    "plot_interval": {
+      "default": 15,
+      "type": "int",
+      "help": "plot interval"
+    },
+    "lossfn": {
+      "default": "ce",
+      "type": "str",
+      "help": "loss function, l2d, ce"
+    },
+    "knowledge_group_size": {
+      "default": 25,
+      "type": "int",
+      "help": "knowledge group size"
+    },
+    "plot_wrong": {
+      "default": 4,
+      "type": "int",
+      "help": "plot wrong images"
+    },
+    "amp": {
+      "type": "store_true",
+      "action": "store_true",
+      "help": "use amp",
+      "default": true
+    },
+    "expression_data_loc": {
+      "default": "D:/gkw/data/expression_data/",
+      "type": "str",
+      "help": "expression data location"
+    },
+    "expression_data_time": {
+      "default": 1,
+      "type": "int",
+      "help": "expression data sampling time"
     }
+  }
 }

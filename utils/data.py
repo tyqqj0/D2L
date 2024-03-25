@@ -163,6 +163,9 @@ def load_data(path='D:/gkw/data/classification', max_data=1024, dataset_name='MN
     train_dataset = datasets.__dict__[dataset_name](root=path, train=True, transform=transform_t, download=True)
     test_dataset = datasets.__dict__[dataset_name](root=path, train=False, transform=transform)
 
+    # 显示dataset的class
+    print(train_dataset.classes)
+
     # 如果设置了max_data，则限制数据集的大小
     if max_data is not None:
         train_dataset = Subset(train_dataset, range(min(max_data, len(train_dataset))))
