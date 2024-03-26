@@ -129,14 +129,22 @@ def knowledge_entropy(feature_maps, method='cosine'):
     if isinstance(feature_maps, torch.Tensor):
         feature_maps = feature_maps.cpu().numpy()
 
-    # 计算特征图数量
-    n = len(feature_maps)
-    # 计算内积矩阵
+    # n = len(feature_maps)
     matrix = inner_product_matrix(feature_maps, method)
-    # 对矩阵特征值分解
     eigenvalues = np.linalg.eigvals(matrix)
-    # 对特征值归一化
-    eigenvalues = eigenvalues / np.sum(eigenvalues)
-    # 计算特征值的的信息熵
-    entropy = -np.sum(eigenvalues * np.log2(eigenvalues))
+
+    # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
+    eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
+
+    # 归一化特征值，以避免除以零
+    total = np.sum(eigenvalues)
+    if total > 0:
+        eigenvalues /= total
+    else:
+        # 如果所有特征值都是零，这意味着熵为零
+        return 0
+
+    # 计算熵，忽略零特征值，因为 0 * log2(0) 应该是 0
+    entropy = -np.sum(eigenvalues[eigenvalues > 0] * np.log2(eigenvalues[eigenvalues > 0]))
+
     return entropy

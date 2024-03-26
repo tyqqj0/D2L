@@ -231,8 +231,9 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     plt.figure()
     for i in range(len(data)):
         plt.subplot(1, 6, i + 1)
-        plt.imshow(scale_image(data[i]) if replace_label else data[i], cmap='gray', interpolation='none')
-        plt.title(f'True: {label_of_cifar10[label[i]]}\n{label_of_cifar10[pred[i]]}')
+        plt.imshow(scale_image(data[i]), cmap='gray', interpolation='none')
+        plt.title(
+            f'True: {label_of_cifar10[label[i]] if replace_label else label[i]}\n{label_of_cifar10[pred[i]] if replace_label else label[i]}')
         plt.axis('off')
 
     # 保存图表

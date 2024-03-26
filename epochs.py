@@ -156,6 +156,8 @@ def lid_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
                 lidses[key] += value
         for key in lidses.keys():
             lidses[key] = lidses[key] / len(class_lidses)
+            if np.isnan(lidses[key]):
+                lidses[key] = 0
 
     #
     return lidses, logits_list
