@@ -44,7 +44,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                               f'{args.model}_{val_accuracy}_{args.noise_ratio}', times=args.expression_data_time,
                               epoch=epoch + 1,
                               num_class=args.num_classes, group_size=args.knowledge_group_size)
-        ne_dict = ne_compute_epoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size)
+        ne_dict = ne_compute_epoch(model, train_loader, device, num_class=args.num_classes,
+                                   group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
         scheduler.step()
@@ -54,6 +55,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))  # , train_lid
         print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))  # , val_lid
         print('knowledge:', knowes)
+        print('ne:', ne_dict)
 
         # mlflow记录
         train_metrics = {
@@ -67,6 +69,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('train', train_metrics, step=epoch + 1)
         logbox.log_metrics('val', val_metrics, step=epoch + 1)
         logbox.log_metrics('knowledge', knowes, step=epoch + 1)
+        logbox.log_metrics('ne', ne_dict, step=epoch + 1)
 
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
@@ -75,7 +78,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
 
             # 绘制ne图像
-            plot_layer_all(ne_dict, epoch + 1, y_lim=1, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
+            plot_layer_all(ne_dict, epoch + 1, y_lim=15, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
 
             # 保存knows参数文件数
             dict_to_json(knowes.update(

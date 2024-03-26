@@ -72,10 +72,10 @@ class FeatureMapSimilarity:
         feature_map1 = np.asarray(feature_map1, dtype=np.float32)
         feature_map2 = np.asarray(feature_map2, dtype=np.float32)
         similarity = self.similarity(feature_map1, feature_map2)
-        if similarity == np.inf or similarity == np.nan:
+        if np.isinf(similarity):
             similarity = 1
-        if similarity == 0:
-            similarity = similarity + 1e-9
+        if similarity == 0 or np.isnan(similarity):
+            similarity = 1e-9
         # print(similarity)
         return similarity
 
@@ -109,7 +109,7 @@ def inner_product_matrix(feature_maps, method='cosine'):
     # 计算内积矩阵
     for i in range(n):
         for j in range(i, n):
-            similarity = fmsstt(feature_maps[i], feature_maps[j])
+            similarity = abs(fmsstt(feature_maps[i], feature_maps[j]))
             # print(similarity)
             matrix[i, j] = similarity
             matrix[j, i] = similarity

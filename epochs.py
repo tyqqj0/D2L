@@ -12,6 +12,8 @@ import torch
 from torch.cuda.amp import autocast
 from tqdm import tqdm
 
+import numpy as np
+
 from LID import get_lids_batches
 from know_entropy import knowledge_entropy
 from utils.BOX import logbox
@@ -237,46 +239,46 @@ def ne_compute_epoch(model, data_loader, device, num_class=10, group_size=15):
     :param group_size: 每类取数据量
     '''
 
-
     model.eval()
     logits_list = defaultdict(dict)
     class_counts = [0] * num_class  # 记录每个类别收集的样本数
 
-    with autocast():
-        with torch.no_grad():
-            for inputs, targets in data_loader:
-                inputs, targets = inputs.to(device), targets.to(device)
-                if len(targets.size()) > 1:
-                    targets = torch.argmax(targets, dim=1)
+    with torch.no_grad():
+        for inputs, targets in data_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            if len(targets.size()) > 1:
+                targets = torch.argmax(targets, dim=1)
 
-                outputs, logits = model(inputs)
+            outputs, logits = model(inputs)
 
-                for idx, target in enumerate(targets):
-                    label = target.item()
-                    if class_counts[label] < group_size:
-                        for key, value in logits.items():
-                            if key in logits_list[label]:
-                                logits_list[label][key] = torch.cat(
-                                    (logits_list[label][key], value[idx].unsqueeze(0)), dim=0)
-                            else:
-                                logits_list[label][key] = value[idx].unsqueeze(0)
-                        class_counts[label] += 1
-
-                    if all(count >= group_size for count in class_counts):
-                        break
+            for idx, target in enumerate(targets):
+                label = target.item()
+                if class_counts[label] < group_size:
+                    for key, value in logits.items():
+                        if key in logits_list[label]:
+                            logits_list[label][key] = torch.cat(
+                                (logits_list[label][key], value[idx].unsqueeze(0)), dim=0)
+                        else:
+                            logits_list[label][key] = value[idx].unsqueeze(0)
+                    class_counts[label] += 1
 
                 if all(count >= group_size for count in class_counts):
                     break
 
-        # 计算所有层的知识熵
-        ne_dict = defaultdict(int)
-        for label, logits_per_class in logits_list.items():
-            for key, value in logits_per_class.items():
-                ne_dict[key] += knowledge_entropy(value)
+            if all(count >= group_size for count in class_counts):
+                break
 
-        print('ne_compute complete')
-    return ne_dict
+    # 计算所有层的知识熵
+    ne_dict = defaultdict(list)
+    for label, logits_per_class in logits_list.items():
+        for key, value in logits_per_class.items():
+            ne_dict[key].append(knowledge_entropy(value))
+        # ne_dict[key] = np.mean(ne_dict[key])
 
+    print('ne_compute complete')
+
+
+    return {key: np.mean(values) for key, values in ne_dict.items()} #ne_dict
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

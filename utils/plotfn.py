@@ -100,6 +100,7 @@ def kn_map(data_epoch, label, epoch, group_size=25, folder='', pre='', path=None
     for layer, data in data_epoch.items():
         layer_plt = kn_map_layer(data, label, layer, group_size=group_size)
         layer_plt.savefig(full_file_path + layer + '.png')
+        layer_plt.close()
         print('Saved plot {}'.format(layer + '.png'))
 
     # 跑一张整体图，带不同标签
