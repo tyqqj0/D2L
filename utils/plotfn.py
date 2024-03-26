@@ -37,7 +37,7 @@ def plot_lid_plt(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     return path
 
 
-def plot_lid_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
+def plot_layers_seaborn(lidss, epoch, y_lim=None, folder='', pre='', path=None):
     file_name = pre + '_' + 'epoch_{:03d}.png'.format(epoch)
     # 如果path不为None，则在path中创建文件夹
     full_folder_path = os.path.join(path, folder) if path is not None else folder

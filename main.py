@@ -14,19 +14,20 @@ import torch.optim as optim
 from torch.cuda.amp import GradScaler
 
 import utils.arg.parser
-from epochs import train_epoch, val_epoch, lid_compute_epoch, plot_kmp, dict_to_json, expression_save_epoch
+from epochs import train_epoch, val_epoch, lid_compute_epoch, plot_kmp, dict_to_json, expression_save_epoch, \
+    ne_compute_epoch
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
 from utils.BOX import logbox
 from utils.data import load_data
-from utils.plotfn import plot_lid_seaborn
+from utils.plotfn import plot_layers_seaborn
 from utils.text import text_in_box
 
+plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 
-plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
+
 # logbox = box()
-
 
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
@@ -40,8 +41,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         knowes, logits_list = lid_compute_epoch(model, test_loader, device, num_class=args.num_classes,
                                                 group_size=args.knowledge_group_size)
         expression_save_epoch(model, train_loader, device, args.expression_data_loc,
-                              f'{args.model}_{val_accuracy}_{args.noise_ratio}', times=args.expression_data_time, epoch=epoch + 1,
+                              f'{args.model}_{val_accuracy}_{args.noise_ratio}', times=args.expression_data_time,
+                              epoch=epoch + 1,
                               num_class=args.num_classes, group_size=args.knowledge_group_size)
+        ne_dict = ne_compute_epoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
         scheduler.step()
@@ -69,7 +72,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
 
             # 绘制knows图像
-            plot_lid_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
+            plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
+
+            # 绘制ne图像
+            plot_layer_all(ne_dict, epoch + 1, y_lim=1, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
 
             # 保存knows参数文件数
             dict_to_json(knowes.update(
