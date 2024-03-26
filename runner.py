@@ -10,7 +10,9 @@
 import subprocess
 
 all = ['--amp',
-       'run_name', '1',
+       'run_name', 'show_t_sd'  # ,
+       # '--exp_name', 'noisy_test'
+       # 'run_name', '1',
        '--exp_name', 'expression_data',
        '--group_size', '0'
        ]

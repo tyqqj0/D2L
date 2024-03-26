@@ -18,13 +18,15 @@ from epochs import train_epoch, val_epoch, lid_compute_epoch, plot_kmp, dict_to_
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
-from utils.BOX.box2 import box
+from utils.BOX import logbox
 from utils.data import load_data
 from utils.plotfn import plot_lid_seaborn
 from utils.text import text_in_box
 
-logbox = box()
+
 plot_lid_all = logbox.log_artifact_autott(plot_lid_seaborn)
+# logbox = box()
+
 
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
@@ -38,7 +40,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         knowes, logits_list = lid_compute_epoch(model, test_loader, device, num_class=args.num_classes,
                                                 group_size=args.knowledge_group_size)
         expression_save_epoch(model, train_loader, device, args.expression_data_loc,
-                              f'{args.model}_{val_accuracy}_{args.noise_ratio}', args.expression_data_time, epoch + 1,
+                              f'{args.model}_{val_accuracy}_{args.noise_ratio}', times=args.expression_data_time, epoch=epoch + 1,
                               num_class=args.num_classes, group_size=args.knowledge_group_size)
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)

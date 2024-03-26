@@ -123,7 +123,7 @@
       "help": "expression data location"
     },
     "expression_data_time": {
-      "default": 1,
+      "default": 0,
       "type": "int",
       "help": "expression data sampling time"
     }

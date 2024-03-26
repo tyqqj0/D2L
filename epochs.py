@@ -13,7 +13,7 @@ from torch.cuda.amp import autocast
 from tqdm import tqdm
 
 from LID import get_lids_batches
-from main import logbox
+from utils.BOX import logbox
 from utils.plotfn import kn_map, plot_wrong_label
 
 plot_kn_map = logbox.log_artifact_autott(kn_map)
@@ -176,14 +176,14 @@ def expression_save_epoch(model, data_loader, device, path, folder, times,  epoc
     :param shuffle: 是否打乱数据顺序
     '''
     for time in range(times):
-        current_path = os.path.join(path, folder, f'time_{time}')
-        print(f'Starting saving for time {time} at {current_path}')
+        current_path = os.path.join(path, folder, f'time_{time + 1}')
+        print(f'Starting saving for time {time + 1} at {current_path}')
         # 如果current_path不存在，则创建一个文件夹，并保存一个所有类数量和名称信息的json文件
         if not os.path.exists(current_path):
             print('Create folder:', current_path)
             os.makedirs(current_path)
             # 保存类别信息
-            class_info = {'num_class': num_class, 'class_name': data_loader.dataset.classes, 'epoch': epoch}
+            class_info = {'num_class': num_class, 'class_name': data_loader.dataset.dataset.classes, 'epoch': epoch}
             json_file = os.path.join(current_path, 'class_info.json')
             with open(json_file, 'w') as f:
                 json.dump(class_info, f)

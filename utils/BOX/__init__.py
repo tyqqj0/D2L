@@ -7,3 +7,7 @@
 
 
 
+from .box2 import box
+
+# 创建一个默认的logbox实例
+logbox = box()
