@@ -10,10 +10,10 @@
 import subprocess
 
 all = ['--amp',
-       'run_name', 'show_t_sd'  # ,
+       'run_name', 'show_ne_data',
        # '--exp_name', 'noisy_test'
        # 'run_name', '1',
-       '--exp_name', 'expression_data',
+       '--exp_name', 'ne',
        '--group_size', '0'
        ]
 
@@ -21,15 +21,15 @@ parameters = [
     # ['--model', 'resnet18', '--noise_ratio', '0'],
     ['--model', 'resnet50', '--noise_ratio', '0'],
     # ['--model', 'resnet18', '--noise_ratio', '0.5'],
-    ['--model', 'resnet50', '--noise_ratio', '0.1'],
-    ['--model', 'resnet50', '--noise_ratio', '0.2'],
-    ['--model', 'resnet50', '--noise_ratio', '0.3'],
-    ['--model', 'resnet50', '--noise_ratio', '0.4'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.1'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.2'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.3'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.4'],
     ['--model', 'resnet50', '--noise_ratio', '0.5'],
-    ['--model', 'resnet50', '--noise_ratio', '0.6'],
-    ['--model', 'resnet50', '--noise_ratio', '0.7'],
-    ['--model', 'resnet50', '--noise_ratio', '0.8'],
-    ['--model', 'resnet50', '--noise_ratio', '0.9'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.6'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.7'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.8'],
+    # ['--model', 'resnet50', '--noise_ratio', '0.9'],
     ['--model', 'resnet50', '--noise_ratio', '1']
 ]
 
