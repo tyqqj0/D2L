@@ -10,31 +10,35 @@
 import subprocess
 
 all = ['--amp',
-       'run_name', 'show_ne_2',
+       'run_name', 'show_ne',
        # '--exp_name', 'noisy_test'
        # 'run_name', '1',
-       '--exp_name', 'ne',
+       '--exp_name', 'n2',
        '--group_size', '0'
+                       '--model', 'resnet50'
        ]
 
 parameters = [
-    # ['--model', 'resnet18', '--noise_ratio', '0'],
-    # ['--model', 'resnet18', '--noise_ratio', '0.5'],
-    ['--model', 'resnet50', '--noise_ratio', '0'],
-    ['--model', 'resnet50', '--noise_ratio', '0.1'],
-    ['--model', 'resnet50', '--noise_ratio', '0.2'],
-    ['--model', 'resnet50', '--noise_ratio', '0.3'],
-    ['--model', 'resnet50', '--noise_ratio', '0.4'],
-    ['--model', 'resnet50', '--noise_ratio', '0.5'],
-    ['--model', 'resnet50', '--noise_ratio', '0.6'],
-    ['--model', 'resnet50', '--noise_ratio', '0.7'],
-    ['--model', 'resnet50', '--noise_ratio', '0.8'],
-    ['--model', 'resnet50', '--noise_ratio', '0.9'],
-    ['--model', 'resnet50', '--noise_ratio', '1']
+    ['--noise_ratio', '0.00'],
+    ['--noise_ratio', '0.05'],
+    ['--noise_ratio', '0.1'],
+    ['--noise_ratio', '0.15'],
+    ['--noise_ratio', '0.2'],
+    ['--noise_ratio', '0.25'],
+    ['--noise_ratio', '0.3'],
+    ['--noise_ratio', '0.35'],
+    ['--noise_ratio', '0.4'],
+    ['--noise_ratio', '0.45'],
+    ['--noise_ratio', '0.5'],
+    ['--noise_ratio', '0.6'],
+    ['--noise_ratio', '0.7'],
+    ['--noise_ratio', '0.8'],
+    ['--noise_ratio', '0.9'],
+    ['--noise_ratio', '1']
 ]
-
-for parameter in parameters:
-    print(parameter + all)
-    command = ['python', 'main.py'] + parameter + all
-    subprocess.run(command)
-    print('Finish run', parameter)
+for i in range(3):
+    for parameter in parameters:
+        print(parameter + all)
+        command = ['python', 'main.py'] + parameter + all
+        subprocess.run(command)
+        print('Finish run', parameter)

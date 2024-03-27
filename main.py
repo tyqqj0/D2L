@@ -50,6 +50,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     for epoch in range(args.epochs):
         print('\n')
+        stop_count = 0
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy = train_epoch.run(epoch + 1)
         val_loss, val_accuracy = val_epoch.run(epoch + 1)
@@ -101,6 +102,14 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
             if args.knowledge_group_size > 1:
                 plot_kmp(epoch, logits_list, model_name=args.model, noise_ratio=args.noise_ratio, folder='kn_map')
+
+        # 提前停止条件, 若多个epoch训练准确率都在1左右
+        if train_accuracy > 0.99:
+            stop_count += 1
+            if stop_count > 5:
+                break
+        else:
+            stop_count = 0
 
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:

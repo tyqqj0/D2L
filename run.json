@@ -37,7 +37,7 @@
       "help": "batch size"
     },
     "epochs": {
-      "default": 100,
+      "default": 200,
       "type": "int",
       "help": "number of total epochs to run"
     },
