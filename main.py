@@ -14,15 +14,15 @@ import torch.optim as optim
 from torch.cuda.amp import GradScaler
 
 import utils.arg.parser
-from epochs import train_epoch, val_epoch, lid_compute_epoch, plot_kmp, dict_to_json, expression_save_epoch, \
-    ne_compute_epoch
+from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, plot_kmp, dict_to_json, BaseEpoch
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
-from utils.BOX import logbox
 from utils.data import load_data
 from utils.plotfn import plot_layers_seaborn
 from utils.text import text_in_box
+
+from utils.BOX import logbox
 
 plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 
@@ -31,21 +31,30 @@ plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 
 
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
+    # 实例化epoch
+    # 通过BaseEpoch设置最大epoch数
+    BaseEpoch.set_max_epoch(args.epochs)
+    train_epoch = TrainEpoch(model, train_loader, optimizer, criterion, device,
+                             scalar=GradScaler() if args.amp else None)
+    val_epoch = ValEpoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
+                         replace_label=(args.model != 'MNIST'))
+    lid_compute_epoch = LIDComputeEpoch(model, train_loader, device, num_class=args.num_classes,
+                                        group_size=args.knowledge_group_size, interval=args.plot_interval)
+    expression_save_epoch = ExpressionSaveEpoch(model, train_loader, device, args.expression_data_loc,
+                                                f'{args.model}_{args.noise_ratio}', times=args.expression_data_time,
+                                                num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval)
+    ne_compute_epoch = NEComputeEpoch(model, train_loader, device, num_class=args.num_classes,
+                                      group_size=args.knowledge_group_size, interval=args.plot_interval)
+
     for epoch in range(args.epochs):
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
-        train_loss, train_accuracy = train_epoch(model, train_loader, optimizer, criterion, device,
-                                                 scaler=GradScaler() if args.amp else None)
-        val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
-                                           epoch=epoch + 1, replace_label=(args.model != 'MNIST'))
-        knowes, logits_list = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
-                                                group_size=args.knowledge_group_size)
-        expression_save_epoch(model, train_loader, device, args.expression_data_loc,
-                              f'{args.model}_{val_accuracy}_{args.noise_ratio}', times=args.expression_data_time,
-                              epoch=epoch + 1,
-                              num_class=args.num_classes, group_size=args.knowledge_group_size)
-        ne_dict = ne_compute_epoch(model, train_loader, device, num_class=args.num_classes,
-                                   group_size=args.knowledge_group_size)
+        train_loss, train_accuracy = train_epoch.run(epoch + 1)
+        val_loss, val_accuracy = val_epoch.run(epoch + 1)
+        knowes, logits_list = lid_compute_epoch.run(epoch + 1)
+        expression_save_epoch.run(epoch + 1)
+        ne_dict = ne_compute_epoch.run(epoch + 1)
+
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)
         scheduler.step()
@@ -75,7 +84,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
 
             # 绘制knows图像
-            plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
+            plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge',
+                           pre=args.model + '_' + str(args.noise_ratio))
 
             # 绘制ne图像
             plot_layer_all(ne_dict, epoch + 1, y_lim=6, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
