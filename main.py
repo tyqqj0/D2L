@@ -38,7 +38,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                                  scaler=GradScaler() if args.amp else None)
         val_loss, val_accuracy = val_epoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
                                            epoch=epoch + 1, replace_label=(args.model != 'MNIST'))
-        knowes, logits_list = lid_compute_epoch(model, test_loader, device, num_class=args.num_classes,
+        knowes, logits_list = lid_compute_epoch(model, train_loader, device, num_class=args.num_classes,
                                                 group_size=args.knowledge_group_size)
         expression_save_epoch(model, train_loader, device, args.expression_data_loc,
                               f'{args.model}_{val_accuracy}_{args.noise_ratio}', times=args.expression_data_time,
@@ -78,7 +78,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge', pre=args.model + '_' + str(args.noise_ratio))
 
             # 绘制ne图像
-            plot_layer_all(ne_dict, epoch + 1, y_lim=15, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
+            plot_layer_all(ne_dict, epoch + 1, y_lim=6, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
 
             # 保存knows参数文件数
             dict_to_json(knowes.update(
