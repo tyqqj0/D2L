@@ -63,7 +63,7 @@ class BaseEpoch:
         raise NotImplementedError
 
     def _default_return(self):
-        return None
+        return [None, None]
 
     # 设置所有epoch的最大迭代次数
     @classmethod
