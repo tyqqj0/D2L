@@ -105,7 +105,7 @@ class TrainEpoch(BaseEpoch):
             total += targets.size(0)
             correct += predicted.eq(targets.data).cpu().sum()
 
-            self.loader.set_description(f"Loss: {loss.item():.4f}")
+            self.loader.set_description(f"Train Loss: {loss.item():.4f}")
 
         train_loss = running_loss / len(self.loader)
         train_accuracy = correct / total
@@ -144,6 +144,7 @@ class ValEpoch(BaseEpoch):
                 _, predicted = torch.max(outputs.data, 1)
                 total += targets.size(0)
                 correct += predicted.eq(targets.data).cpu().sum()
+                self.loader.set_description(f"Val Loss: {loss.item():.4f}")
 
         val_loss = running_loss / len(self.loader)
         val_accuracy = correct / total

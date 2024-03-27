@@ -19,11 +19,10 @@ from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, Expres
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
+from utils.BOX import logbox
 from utils.data import load_data
 from utils.plotfn import plot_layers_seaborn
 from utils.text import text_in_box
-
-from utils.BOX import logbox
 
 plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 
@@ -34,6 +33,7 @@ plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
     # 实例化epoch
     # 通过BaseEpoch设置最大epoch数
+    stop_count = 0
     BaseEpoch.set_max_epoch(args.epochs)
     train_epoch = TrainEpoch(model, train_loader, optimizer, criterion, device,
                              scaler=GradScaler() if args.amp else None)
@@ -50,7 +50,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     for epoch in range(args.epochs):
         print('\n')
-        stop_count = 0
+        if stop_count > 5 and epoch < args.epochs - 1:
+            continue
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy = train_epoch.run(epoch + 1)
         val_loss, val_accuracy = val_epoch.run(epoch + 1)
@@ -63,7 +64,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         scheduler.step()
 
         # 打印训练信息
-
+        print('\n')
         print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))  # , train_lid
         print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))  # , val_lid
 
@@ -104,10 +105,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                 plot_kmp(epoch, logits_list, model_name=args.model, noise_ratio=args.noise_ratio, folder='kn_map')
 
         # 提前停止条件, 若多个epoch训练准确率都在1左右
-        if train_accuracy > 0.99:
+        if train_accuracy >= 0.99:
+            print('near cpt', stop_count)
             stop_count += 1
-            if stop_count > 5:
-                break
+
         else:
             stop_count = 0
 
