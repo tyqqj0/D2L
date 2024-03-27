@@ -57,10 +57,13 @@ class BaseEpoch:
                 self.loader.refresh()
             return result
         else:
-            return [None, None]
+            return self._default_return()
 
     def _run_epoch(self, epoch, *args, **kwargs):
         raise NotImplementedError
+
+    def _default_return(self):
+        return None
 
     # 设置所有epoch的最大迭代次数
     @classmethod

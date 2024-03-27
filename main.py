@@ -14,7 +14,8 @@ import torch.optim as optim
 from torch.cuda.amp import GradScaler
 
 import utils.arg.parser
-from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, plot_kmp, dict_to_json, BaseEpoch
+from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, plot_kmp, dict_to_json, \
+    BaseEpoch
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
@@ -42,7 +43,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                         group_size=args.knowledge_group_size, interval=args.plot_interval)
     expression_save_epoch = ExpressionSaveEpoch(model, train_loader, device, args.expression_data_loc,
                                                 f'{args.model}_{args.noise_ratio}', times=args.expression_data_time,
-                                                num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval)
+                                                num_class=args.num_classes, group_size=args.knowledge_group_size,
+                                                interval=args.plot_interval)
     ne_compute_epoch = NEComputeEpoch(model, train_loader, device, num_class=args.num_classes,
                                       group_size=args.knowledge_group_size, interval=args.plot_interval)
 
@@ -63,8 +65,6 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
         print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))  # , train_lid
         print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))  # , val_lid
-        print('knowledge:', knowes)
-        print('ne:', ne_dict)
 
         # mlflow记录
         train_metrics = {
@@ -78,13 +78,13 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         logbox.log_metrics('train', train_metrics, step=epoch + 1)
         logbox.log_metrics('val', val_metrics, step=epoch + 1)
 
-
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
 
+            print('knowledge:', knowes)
+            print('ne:', ne_dict)
             logbox.log_metrics('knowledge', knowes, step=epoch + 1)
             logbox.log_metrics('ne', ne_dict, step=epoch + 1)
-
 
             # 绘制knows图像
             plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge',
