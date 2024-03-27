@@ -229,7 +229,7 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
 
     # 创建Seaborn图
     plt.figure()
-    print('replace label:', replace_label)
+    # print('replace label:', replace_label)
     for i in range(len(data)):
         plt.subplot(1, 6, i + 1)
         plt.imshow(scale_image(data[i]), cmap='gray', interpolation='none')

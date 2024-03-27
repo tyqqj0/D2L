@@ -8,11 +8,10 @@ import json
 import os
 from collections import defaultdict
 
+import numpy as np
 import torch
 from torch.cuda.amp import autocast
 from tqdm import tqdm
-
-import numpy as np
 
 from LID import get_lids_batches
 from know_entropy import knowledge_entropy
@@ -29,14 +28,36 @@ class BaseEpoch:
     def __init__(self, name, model, loader, device, interval=1, bar=True):
         self.name = name
         self.model = model
-        self.loader = tqdm(enumerate(loader), total=len(loader)) if bar else loader
+        self.loaders = loader
+        self.loader = None
         self.device = device
         self.interval = interval
+        self.bar = bar
 
     def run(self, epoch, *args, **kwargs):
         if epoch % self.interval == 0 or epoch == self.max_epoch:
-            print('Running {} Epoch: {}\n'.format(self.name, epoch))
-            self._run_epoch(epoch, *args, **kwargs)
+
+            if self.bar:
+                # 使用 tqdm.write 来打印信息
+                # tqdm.write(f'\nRunning {self.name} Epoch: {epoch}\n')
+                self.loader = tqdm(enumerate(self.loaders), total=len(self.loaders))
+
+            else:
+                print('\n Running {} Epoch: {}'.format(self.name, epoch))  # 打印信息移动到这里
+                pass
+
+            if len(self.loaders) == 0:  # 注意这里应该是 self.loaders 而不是 self.loader
+                raise ValueError("Loader is empty")
+
+            result = self._run_epoch(epoch, *args, **kwargs)
+
+            if self.bar:
+                self.loader.close()  # 确保关闭 tqdm 进度条
+                self.loader.clear(nolock=False)
+                self.loader.refresh()
+            return result
+        else:
+            return [None, None]
 
     def _run_epoch(self, epoch, *args, **kwargs):
         raise NotImplementedError
@@ -86,7 +107,8 @@ class TrainEpoch(BaseEpoch):
         train_loss = running_loss / len(self.loader)
         train_accuracy = correct / total
 
-        print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))
+        # print('train_loss: %.3f, train_accuracy: %.3f' % (train_loss, train_accuracy))
+        return train_loss, train_accuracy
 
 
 class ValEpoch(BaseEpoch):
@@ -123,7 +145,8 @@ class ValEpoch(BaseEpoch):
         val_loss = running_loss / len(self.loader)
         val_accuracy = correct / total
 
-        print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))
+        # print('val_loss: %.3f, val_accuracy: %.3f' % (val_loss, val_accuracy))
+        return val_loss, val_accuracy
 
 
 class LIDComputeEpoch(BaseEpoch):
@@ -140,7 +163,7 @@ class LIDComputeEpoch(BaseEpoch):
         class_counts = [0] * self.num_class  # 记录每个类别收集的样本数
         with autocast():
             with torch.no_grad():
-                for inputs, targets in self.loader:
+                for batch_idx, (inputs, targets) in self.loader:
                     inputs, targets = inputs.to(self.device), targets.to(self.device)
                     if len(targets.size()) > 1:
                         targets = torch.argmax(targets, dim=1)
@@ -180,7 +203,7 @@ class LIDComputeEpoch(BaseEpoch):
                 if np.isnan(lidses[key]):
                     lidses[key] = 0
 
-        return lidses
+        return lidses, logits_list
 
 
 class ExpressionSaveEpoch(BaseEpoch):
@@ -198,10 +221,10 @@ class ExpressionSaveEpoch(BaseEpoch):
         self.folder = self.folder + '_{}'.format(kwargs['val_accuracy'])
         for self.time in range(self.times):
             current_path = os.path.join(self.path, self.folder, f'time_{self.times + 1}')
-            print(f'Starting saving for time {self.times + 1} at {current_path}')
+            # print(f'Starting saving for time {self.times + 1} at {current_path}')
             # 如果current_path不存在，则创建一个文件夹，并保存一个所有类数量和名称信息的json文件
             if not os.path.exists(current_path):
-                print('Create folder:', current_path)
+                # print('Create folder:', current_path)
                 os.makedirs(current_path)
                 # 保存类别信息
                 class_info = {'num_class': self.num_class, 'class_name': self.loader.dataset.dataset.classes,
@@ -216,7 +239,7 @@ class ExpressionSaveEpoch(BaseEpoch):
 
             with autocast():
                 with torch.no_grad():
-                    for inputs, targets in self.loader:
+                    for batch_idx, (inputs, targets) in self.loader:
                         inputs, targets = inputs.to(self.device), targets.to(self.device)
                         if len(targets.size()) > 1:
                             targets = torch.argmax(targets, dim=1)
@@ -247,7 +270,7 @@ class ExpressionSaveEpoch(BaseEpoch):
                     for layer, feature_map in logits_per_label.items():
                         torch.save(feature_map.cpu(), os.path.join(label_path, f'{layer}.pt'))
 
-            print('Save expression to:', current_path)
+            # print('Save expression to:', current_path)
 
 
 class NEComputeEpoch(BaseEpoch):
@@ -264,7 +287,7 @@ class NEComputeEpoch(BaseEpoch):
         class_counts = [0] * self.num_class  # 记录每个类别收集的样本数
 
         with torch.no_grad():
-            for inputs, targets in self.loader:
+            for batch_idx, (inputs, targets) in self.loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 if len(targets.size()) > 1:
                     targets = torch.argmax(targets, dim=1)
@@ -295,7 +318,7 @@ class NEComputeEpoch(BaseEpoch):
                 ne_dict[key].append(knowledge_entropy(value))
             # ne_dict[key] = np.mean(ne_dict[key])
 
-        print('ne_compute complete')
+        # print('ne_compute complete')
 
         return {key: np.mean(values) for key, values in ne_dict.items()}  # ne_dict
 
