@@ -168,7 +168,7 @@ def knowledge_entropy2(feature_maps, method='cosine'):
     # n = len(feature_maps)
     matrix = inner_product_matrix(feature_maps, method)
     eigenvalues = np.linalg.eigvals(matrix)
-    eigenvector = np.linalg.eig(matrix)
+    _, eigenvector = np.linalg.eig(matrix)
 
     # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
     eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
@@ -181,7 +181,9 @@ def knowledge_entropy2(feature_maps, method='cosine'):
         # 如果所有特征值都是零，这意味着熵为零
         return 0
 
-    vector_v = np.zeros(len(eigenvector))
+    # print(eigenvalues.shape)
+
+    vector_v = np.zeros(len(eigenvalues))
     for i in range(len(eigenvector)):
         for j in range(len(eigenvector)):
             vector_v[j] += eigenvector[i][j] * eigenvalues[i]
