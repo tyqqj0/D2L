@@ -151,3 +151,45 @@ def knowledge_entropy(feature_maps, method='cosine'):
     entropy = -np.sum(eigenvalues[eigenvalues > 0] * np.log2(eigenvalues[eigenvalues > 0]))
 
     return entropy
+
+
+def knowledge_entropy2(feature_maps, method='cosine'):
+    """
+    计算一组数据特征图的知识熵
+    :param feature_maps: 特征图列表 (group_size, C, H, W)
+    :param method: 相似度计算方法
+    :return: 知识熵
+    """
+    # 如果是torch.Tensor类型，则转换为numpy.ndarray类型
+    ## 如果是torch.Tensor类型，则转换为numpy.ndarray类型
+    if isinstance(feature_maps, torch.Tensor):
+        feature_maps = feature_maps.cpu().numpy()
+
+    # n = len(feature_maps)
+    matrix = inner_product_matrix(feature_maps, method)
+    eigenvalues = np.linalg.eigvals(matrix)
+    eigenvector = np.linalg.eig(matrix)
+
+    # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
+    eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
+
+    # 归一化特征值，以避免除以零
+    total = np.sum(eigenvalues)
+    if total > 0:
+        eigenvalues /= total
+    else:
+        # 如果所有特征值都是零，这意味着熵为零
+        return 0
+
+    vector_v = np.zeros(len(eigenvector))
+    for i in range(len(eigenvector)):
+        for j in range(len(eigenvector)):
+            vector_v[j] += eigenvector[i][j] * eigenvalues[i]
+
+    # 归一化
+    vector_v = vector_v / np.sum(vector_v)
+
+    # 计算熵，忽略零特征值，因为 0 * log2(0) 应该是 0
+    entropy = -np.sum(vector_v * np.log2(vector_v))
+
+    return entropy
