@@ -319,7 +319,7 @@ class NEComputeEpoch(BaseEpoch):
         ne_dict = defaultdict(list)
         for label, logits_per_class in logits_list.items():
             for key, value in logits_per_class.items():
-                ne_dict[key].append(knowledge_entropy2(value))
+                ne_dict[key].append(knowledge_entropy(value))
             # ne_dict[key] = np.mean(ne_dict[key])
 
         # print('ne_compute complete')

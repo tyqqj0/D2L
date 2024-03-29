@@ -119,22 +119,27 @@ def inner_product_matrix(feature_maps, method='cosine'):
     return matrix
 
 
-# 计算一组数据特征图的知识熵
-def knowledge_entropy(feature_maps, method='cosine'):
+
+
+
+# 计算数据特征知识
+def compute_knowledge(feature_maps, method='cosine'):
     """
-    计算一组数据特征图的知识熵
-    :param feature_maps: 特征图列表 (group_size, C, H, W)
-    :param method: 相似度计算方法
-    :return: 知识熵
-    """
+        计算一组数据特征知识
+        :param feature_maps: 特征图列表 (group_size, C, H, W)
+        :param method: 相似度计算方法
+        :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
+        """
     # 如果是torch.Tensor类型，则转换为numpy.ndarray类型
     ## 如果是torch.Tensor类型，则转换为numpy.ndarray类型
     if isinstance(feature_maps, torch.Tensor):
         feature_maps = feature_maps.cpu().numpy()
 
+    # 获取内积矩阵
     # n = len(feature_maps)
     matrix = inner_product_matrix(feature_maps, method)
-    eigenvalues = np.linalg.eigvals(matrix)
+    eigenvalues, eigenvectors = np.linalg.eig(matrix)
+
 
     # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
     eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
@@ -147,6 +152,21 @@ def knowledge_entropy(feature_maps, method='cosine'):
         # 如果所有特征值都是零，这意味着熵为零
         return 0
 
+    # 计算原矩阵的特征图向量, 求group_size的特征图的平均特征图
+    feature = np.zeros(len(eigenvectors))
+
+
+
+
+# 计算一组数据特征图的知识熵
+def knowledge_entropy(feature_maps, method='cosine'):
+    """
+    计算一组数据特征图的知识熵
+    :param feature_maps: 特征图列表 (group_size, C, H, W)
+    :param method: 相似度计算方法
+    :return: 知识熵
+    """
+    # 获取特征值
     # 计算熵，忽略零特征值，因为 0 * log2(0) 应该是 0
     entropy = -np.sum(eigenvalues[eigenvalues > 0] * np.log2(eigenvalues[eigenvalues > 0]))
 
