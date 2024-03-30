@@ -16,10 +16,12 @@ from tqdm import tqdm
 from LID import get_lids_batches
 from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilarity# n, knowledge_entropy2
 from utils.BOX import logbox
-from utils.plotfn import kn_map, plot_wrong_label
+from utils.plotfn import kn_map, plot_wrong_label, plot_images
 
 plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
+plot_images = logbox.log_artifact_autott(plot_images)
+
 
 
 class BaseEpoch:
@@ -366,7 +368,7 @@ class PCACorrectEpoch(BaseEpoch):
                 if all(count >= self.group_size for count in class_counts):
                     break
 
-            # 计算所有层特征向量图的主成分({label, [layer, (C, C, H, W)]})
+            # 计算所有层特征向量图的主成分({label, {layer, (C, C, H, W)}})
             pca_dict = defaultdict(dict)
             for label, logits_per_class in logits_list.items():
                 for key, value in logits_per_class.items():
@@ -379,16 +381,27 @@ class PCACorrectEpoch(BaseEpoch):
 
 
             fimttt = FeatureMapSimilarity(method='cosine')
-            # 计算各类别主成分的相关系数矩阵
-            for label, pca_per_class in pca_dict.items():
-                for key, value in pca_per_class.items():
-                    if key == 'layer4':
-                        pca_dict[label][key] = fimttt.similarity(value, value)
+
 
 
             # 计算要修正的主成分
-            pca_corrects = {}
+            pca_corrects = []
             # 先用前两个类为例
+            class2to1 = compute_pca_correct(pca_dict[2]['layer4'], pca_dict[1]['layer4'], fimttt)
+
+            # 获取2中与该成分对齐的样本
+            logits2 = logits_list[2]['layer4']
+            logits2 = logits2.cpu().numpy()
+            for i in range(logits2.shape[0]):
+                if compute_vec_corr(class2to1, logits2[i], fimttt) > 0.85:
+                    pca_corrects.append(logits2[i])
+
+            # 保存修正的样本图片
+            plot_images(pca_corrects, epoch, folder='pca_correct', pre='pca_correct2to1')
+
+
+
+
 
 
 

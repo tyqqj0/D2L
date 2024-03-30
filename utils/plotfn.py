@@ -243,3 +243,52 @@ def plot_wrong_label(data, label, pred, epoch, folder='', pre='', path=None, max
     plt.close()
 
     return os.path.join(path, folder)
+
+
+
+
+
+# 绘制一些图像
+def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, replace_label=False):
+    '''
+    :param images: 二维数据, (batch_size, feature_dim)
+    :param labels: 一维数据, (batch_size, )
+    :param epoch: int, epoch
+    :param folder: str, 文件夹名称
+    :param path: str, 路径
+    :return: plot
+    '''
+    folder = folder
+    file_name = pre + '_' + 'epoch_{:03d}'.format(epoch)
+    # 如果path不为None，则在path中创建文件夹
+
+    if not os.path.exists(path + folder):
+        os.makedirs(path + folder)
+    full_file_path = os.path.join(path, folder, file_name)
+    images = images.cpu().numpy()
+
+
+
+    # 选取前max_samples个图像
+    idx = np.random.choice(len(images), max_samples, replace=False)
+    # print(data.shape)
+    images = np.transpose(images, (0, 2, 3, 1))[idx]
+
+
+
+    # 创建Seaborn图
+    plt.figure()
+    # print('replace label:', replace_label)
+    for i in range(len(images)):
+        plt.subplot(1, 6, i + 1)
+        plt.imshow(scale_image(images[i]), cmap='gray', interpolation='none')
+        # plt.title(
+        #     f'{label_of_cifar10[labels[i]] if replace_label else labels[i]}')
+        plt.axis('off')
+
+    # 保存图表
+    plt.savefig(full_file_path + '.png')
+
+    plt.close()
+
+    return os.path.join(path, folder)
