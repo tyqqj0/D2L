@@ -119,9 +119,6 @@ def inner_product_matrix(feature_maps, method='cosine'):
     return matrix
 
 
-
-
-
 # 计算数据特征知识
 def compute_knowledge(feature_maps, method='cosine'):
     """
@@ -140,7 +137,6 @@ def compute_knowledge(feature_maps, method='cosine'):
     matrix = inner_product_matrix(feature_maps, method)
     eigenvalues, eigenvectors = np.linalg.eig(matrix)
 
-
     # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
     eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
 
@@ -152,10 +148,29 @@ def compute_knowledge(feature_maps, method='cosine'):
         # 如果所有特征值都是零，这意味着熵为零
         return 0
 
+    # 对特征值排序
+    idx = np.argsort(-eigenvalues)
+    eigenvalues = eigenvalues[idx]
+    eigenvectors = eigenvectors[:, idx]  # (C, C)， 其中每一列是一个特征向量, 应使用按列的方式索引即eigenvectors[:, i]
+
     # 计算原矩阵的特征图向量, 求group_size的特征图的平均特征图
-    feature = np.zeros(len(eigenvectors))
+    feature = np.zeros(feature_maps[0].shape)
+    for i in range(feature_maps.shape[0]):
+        feature += feature_maps[i]
+    feature /= feature_maps.shape[0]  # (C, H, W)
 
+    # 计算特征图向量，通过按照特征向量对特征图进行变换
+    # feature_vector_matrices = np.einsum('ij,jklm->iklm', eigenvectors, feature_maps)
+    vector_v = np.zeros(len(eigenvalues), feature.shape)  # (C, C, H, W)
+    for i in range(len(eigenvectors)):
+        for j in range(feature.shape[0]):
+            vector_v[j][i] = eigenvectors[j][i] * feature[j]
 
+    # 交换第一第二维度方便索引值
+    vector_v = np.swapaxes(vector_v, 0, 1)  # (C, C, H, W)
+
+    # 返回特征值和特征向量
+    return eigenvalues, vector_v
 
 
 # 计算一组数据特征图的知识熵
@@ -167,51 +182,9 @@ def knowledge_entropy(feature_maps, method='cosine'):
     :return: 知识熵
     """
     # 获取特征值
+    eigenvalues, _ = compute_knowledge(feature_maps, method)
+
     # 计算熵，忽略零特征值，因为 0 * log2(0) 应该是 0
     entropy = -np.sum(eigenvalues[eigenvalues > 0] * np.log2(eigenvalues[eigenvalues > 0]))
-
-    return entropy
-
-
-def knowledge_entropy2(feature_maps, method='cosine'):
-    """
-    计算一组数据特征图的知识熵
-    :param feature_maps: 特征图列表 (group_size, C, H, W)
-    :param method: 相似度计算方法
-    :return: 知识熵
-    """
-    # 如果是torch.Tensor类型，则转换为numpy.ndarray类型
-    ## 如果是torch.Tensor类型，则转换为numpy.ndarray类型
-    if isinstance(feature_maps, torch.Tensor):
-        feature_maps = feature_maps.cpu().numpy()
-
-    # n = len(feature_maps)
-    matrix = inner_product_matrix(feature_maps, method)
-    eigenvalues = np.linalg.eigvals(matrix)
-    _, eigenvector = np.linalg.eig(matrix)
-
-    # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
-    eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
-
-    # 归一化特征值，以避免除以零
-    total = np.sum(eigenvalues)
-    if total > 0:
-        eigenvalues /= total
-    else:
-        # 如果所有特征值都是零，这意味着熵为零
-        return 0
-
-    # print(eigenvalues.shape)
-
-    vector_v = np.zeros(len(eigenvalues))
-    for i in range(len(eigenvector)):
-        for j in range(len(eigenvector)):
-            vector_v[j] += eigenvector[i][j] * eigenvalues[i]
-
-    # 归一化
-    vector_v = vector_v / np.sum(vector_v)
-
-    # 计算熵，忽略零特征值，因为 0 * log2(0) 应该是 0
-    entropy = -np.sum(vector_v * np.log2(vector_v))
 
     return entropy

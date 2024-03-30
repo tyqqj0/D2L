@@ -14,7 +14,7 @@ from torch.cuda.amp import autocast
 from tqdm import tqdm
 
 from LID import get_lids_batches
-from know_entropy import knowledge_entropy, knowledge_entropy2
+from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilarity# n, knowledge_entropy2
 from utils.BOX import logbox
 from utils.plotfn import kn_map, plot_wrong_label
 
@@ -325,6 +325,173 @@ class NEComputeEpoch(BaseEpoch):
         # print('ne_compute complete')
 
         return {key: np.mean(values) for key, values in ne_dict.items()}  # ne_dict
+
+
+# 主成分修正样本标签修正
+class PCACorrectEpoch(BaseEpoch):
+    def __init__(self, model, loader, device, num_class=10, group_size=15, interval=1, bar=True):
+        super(PCACorrectEpoch, self).__init__('PCA', model, loader, device, interval, bar)
+        self.num_class = num_class
+        self.group_size = group_size
+
+    def _run_epoch(self, epoch, *args, **kwargs):
+        if self.group_size < 2:
+            return {'null': 0}
+        self.model.eval()
+        # 获取各层的logits
+        logits_list = defaultdict(dict)
+        class_counts = [0] * self.num_class
+        with torch.no_grad():
+            for batch_idx, (inputs, targets) in self.loader:
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                if len(targets.size()) > 1:
+                    targets = torch.argmax(targets, dim=1)
+
+                outputs, logits = self.model(inputs)
+
+                for idx, target in enumerate(targets):
+                    label = target.item()
+                    if class_counts[label] < self.group_size:
+                        for key, value in logits.items():
+                            if key in logits_list[label]:
+                                logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
+                                                                    dim=0)
+                            else:
+                                logits_list[label][key] = value[idx].unsqueeze(0)
+                        class_counts[label] += 1
+
+                    if all(count >= self.group_size for count in class_counts):
+                        break
+
+                if all(count >= self.group_size for count in class_counts):
+                    break
+
+            # 计算所有层特征向量图的主成分({label, [layer, (C, C, H, W)]})
+            pca_dict = defaultdict(dict)
+            for label, logits_per_class in logits_list.items():
+                for key, value in logits_per_class.items():
+                    # 暂时只取最后一层
+                    if key == 'layer4':
+                        # pca_dict[label][key] = compute_knowledge(value)
+                        pca_dict[label][key] = compute_knowledge(value)
+
+
+
+
+            fimttt = FeatureMapSimilarity(method='cosine')
+            # 计算各类别主成分的相关系数矩阵
+            for label, pca_per_class in pca_dict.items():
+                for key, value in pca_per_class.items():
+                    if key == 'layer4':
+                        pca_dict[label][key] = fimttt.similarity(value, value)
+
+
+            # 计算要修正的主成分
+            pca_corrects = {}
+            # 先用前两个类为例
+
+
+
+
+
+
+# 从两个类别的主成分中计算要修正的成分
+def compute_pca_correct(pca1, pca2, fimttt):
+    '''
+    从两个类别的主成分中计算要修正的成分
+    :param pca1: 类别1的主成分 (C, C, H, W)
+    :param pca2: 类别2的主成分 (C, C, H, W)
+    '''
+    # 计算两个类别的主成分的相关系数矩阵
+    corr_matrix = compute_pca_corrcl(pca1, pca2, fimttt)
+
+    # 计算要修正的成分, 找到主成分2与主成分1最大成分最相关的主成分
+    max_corr_index = np.argmax(corr_matrix, axis=1) # 返回每行最大值的索引
+
+    # 取出主成分2中与主成分1最相关的主成分(C, H, W)
+    pca_correct2 = pca2[max_corr_index]
+
+    return pca_correct2
+
+
+
+
+# 计算主成分2和主成分1中最大主成分的相关系数
+def compute_pca_corrcl(pca1, pca2, fimttt):
+    '''
+    计算两个主成分的相关系数矩阵
+    :param pca1: 主成分1 (C, C, H, W) (取0, C, H, W)
+    :param pca2: 主成分2 (C, C, H, W)
+    '''
+
+    assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
+
+    # 计算相关系数矩阵
+    corr_matrix = np.zeros(pca2.shape[0])
+    i = 0
+    for j in range(i, pca2.shape[0]):
+        corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j], fimttt)
+        corr_matrix[j, i] = corr_matrix[i, j]
+
+    return corr_matrix
+
+
+
+
+
+# 计算两个主成分的相关系数矩阵
+def compute_pca_corr(pca1, pca2, fimttt):
+    '''
+    计算两个主成分的相关系数矩阵
+    :param pca1: 主成分1 (C, C, H, W)
+    :param pca2: 主成分2 (C, C, H, W)
+    '''
+
+    assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
+
+    # 计算相关系数矩阵
+    corr_matrix = np.zeros((pca1.shape[0], pca2.shape[0]))
+    for i in range(pca1.shape[0]):
+        for j in range(i, pca2.shape[0]):
+            corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j], fimttt)
+            corr_matrix[j, i] = corr_matrix[i, j]
+
+    return corr_matrix
+
+
+
+
+def compute_vec_corr(vec1, vec2, fimttt):
+    '''
+    计算两个向量的相关系数
+    :param vec1: 向量1 (C, H, W)
+    :param vec2: 向量2 (C, H, W)
+    :return: 相关系数
+    '''
+    assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same.'
+    vec1 = vec1.copy()
+    vec2 = vec2.copy()
+    for i in range(vec1.shape[0]):
+        vec1[i] = vec1[i] - np.mean(vec1[i])
+        vec2[i] = vec2[i] - np.mean(vec2[i])
+
+    # 计算内积大小
+    inner_product = 0
+    for i in range(vec1.shape[0]):
+        inner_product += fimttt(vec1[i], vec2[i])
+
+
+    # 计算向量的模
+    norm1 = 0
+    norm2 = 0
+    for i in range(vec1.shape[0]):
+        norm1 += fimttt(vec1[i], vec1[i])
+        norm2 += fimttt(vec2[i], vec2[i])
+    norm1 = np.sqrt(norm1)
+    norm2 = np.sqrt(norm2)
+
+    return inner_product / (norm1 * norm2)
+
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):
