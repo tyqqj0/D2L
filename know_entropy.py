@@ -129,6 +129,7 @@ def compute_knowledge(feature_maps, method='cosine'):
         """
     # 如果是torch.Tensor类型，则转换为numpy.ndarray类型
     ## 如果是torch.Tensor类型，则转换为numpy.ndarray类型
+    print(feature_maps.shape)
     if isinstance(feature_maps, torch.Tensor):
         feature_maps = feature_maps.cpu().numpy()
 
@@ -155,13 +156,15 @@ def compute_knowledge(feature_maps, method='cosine'):
 
     # 计算原矩阵的特征图向量, 求group_size的特征图的平均特征图
     feature = np.zeros(feature_maps[0].shape)
+    print(feature.shape)
     for i in range(feature_maps.shape[0]):
         feature += feature_maps[i]
     feature /= feature_maps.shape[0]  # (C, H, W)
+    print(feature.shape)
 
     # 计算特征图向量，通过按照特征向量对特征图进行变换
     # feature_vector_matrices = np.einsum('ij,jklm->iklm', eigenvectors, feature_maps)
-    vector_v = np.zeros(len(eigenvalues), feature.shape)  # (C, C, H, W)
+    vector_v = np.zeros((feature.shape[0], feature.shape[0], feature.shape[1], feature.shape[2]))  # (C, C, H, W)
     for i in range(len(eigenvectors)):
         for j in range(feature.shape[0]):
             vector_v[j][i] = eigenvectors[j][i] * feature[j]

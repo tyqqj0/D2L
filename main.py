@@ -14,7 +14,7 @@ import torch.optim as optim
 from torch.cuda.amp import GradScaler
 
 import utils.arg.parser
-from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, plot_kmp, dict_to_json, \
+from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, PCACorrectEpoch, plot_kmp, dict_to_json, \
     BaseEpoch
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
@@ -47,6 +47,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                                 interval=args.plot_interval)
     ne_compute_epoch = NEComputeEpoch(model, train_loader, device, num_class=args.num_classes,
                                       group_size=args.knowledge_group_size, interval=args.plot_interval)
+    pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval)
 
     for epoch in range(args.epochs):
         print('\n')
@@ -58,6 +59,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         knowes, logits_list = lid_compute_epoch.run(epoch + 1)
         expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         ne_dict = ne_compute_epoch.run(epoch + 1)
+        pca_compute_epoch(epoch + 1)
 
         if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
             criterion.update(knowes, epoch + 1)

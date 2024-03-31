@@ -304,6 +304,7 @@ class NEComputeEpoch(BaseEpoch):
                     label = target.item()
                     if class_counts[label] < self.group_size:
                         for key, value in logits.items():
+                            print(value.shape)
                             if key in logits_list[label]:
                                 logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
                                                                     dim=0)
@@ -321,6 +322,7 @@ class NEComputeEpoch(BaseEpoch):
         ne_dict = defaultdict(list)
         for label, logits_per_class in logits_list.items():
             for key, value in logits_per_class.items():
+                print(value.shape)
                 ne_dict[key].append(knowledge_entropy(value))
             # ne_dict[key] = np.mean(ne_dict[key])
 
@@ -386,11 +388,13 @@ class PCACorrectEpoch(BaseEpoch):
 
             # 计算要修正的主成分
             pca_corrects = []
+            cl1 = '1 - one'
+            cl2 = '2 - two'
             # 先用前两个类为例
-            class2to1 = compute_pca_correct(pca_dict[2]['layer4'], pca_dict[1]['layer4'], fimttt)
+            class2to1 = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
 
             # 获取2中与该成分对齐的样本
-            logits2 = logits_list[2]['layer4']
+            logits2 = logits_list[cl2]['layer4']
             logits2 = logits2.cpu().numpy()
             for i in range(logits2.shape[0]):
                 if compute_vec_corr(class2to1, logits2[i], fimttt) > 0.85:
