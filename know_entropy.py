@@ -17,6 +17,73 @@ import torch
 
 
 # 两张特征图的相似度计算
+def euclidean_distance_batch(feature_maps1, feature_maps2):
+    # Assuming feature_maps1 and feature_maps2 are of shape (batch_size, *feature_dimensions)
+    diff = feature_maps1 - feature_maps2
+    distance = np.sqrt(np.sum(np.square(diff), axis=tuple(range(1, diff.ndim))))
+    return distance
+
+
+def cosine_similarity_batch(feature_maps1, feature_maps2, epsilon=1e-10):
+    # Flatten all but the first dimension for dot product calculation
+    flattened_maps1 = feature_maps1.reshape(feature_maps1.shape[0], -1)
+    flattened_maps2 = feature_maps2.reshape(feature_maps2.shape[0], -1)
+
+    dot_product = np.sum(flattened_maps1 * flattened_maps2, axis=1)
+    norm1 = np.linalg.norm(flattened_maps1, axis=1)
+    norm2 = np.linalg.norm(flattened_maps2, axis=1)
+
+    similarity = dot_product / (np.maximum(norm1 * norm2, epsilon))
+    return similarity
+
+
+def pearson_correlation_coefficient_batch(feature_maps1, feature_maps2):
+    # Flatten all but the first dimension for mean and std calculations
+    flattened_maps1 = feature_maps1.reshape(feature_maps1.shape[0], -1)
+    flattened_maps2 = feature_maps2.reshape(feature_maps2.shape[0], -1)
+
+    mean1 = np.mean(flattened_maps1, axis=1)
+    mean2 = np.mean(flattened_maps2, axis=1)
+    std1 = np.std(flattened_maps1, axis=1)
+    std2 = np.std(flattened_maps2, axis=1)
+
+    normalized_maps1 = (flattened_maps1 - mean1[:, np.newaxis]) / std1[:, np.newaxis]
+    normalized_maps2 = (flattened_maps2 - mean2[:, np.newaxis]) / std2[:, np.newaxis]
+
+    correlation = np.sum(normalized_maps1 * normalized_maps2, axis=1) / (flattened_maps1.shape[1] - 1)
+    return correlation
+
+
+class FeatureMapSimilarityBatch:
+    def __init__(self, method='cosine'):
+        self.methods = {
+            'euclidean': euclidean_distance_batch,
+            'cosine': cosine_similarity_batch,
+            'pearson': pearson_correlation_coefficient_batch
+        }
+        if method not in self.methods:
+            raise ValueError(f"Method not recognized. Available methods: {list(self.methods.keys())}")
+        self.method = method
+
+    def __call__(self, feature_maps1, feature_maps2):
+        if feature_maps1.shape != feature_maps2.shape:
+            raise ValueError("The two batches of feature maps must have the same shape.")
+        # 如果 feature_maps1 和 feature_maps2 都是 1 维的，直接计算并返回它们的点积
+        if feature_maps1.ndim == 1 and feature_maps2.ndim == 1:
+            return np.dot(feature_maps1, feature_maps2)
+        return self.methods[self.method](feature_maps1, feature_maps2)
+
+    def set_method(self, method):
+        if method not in self.methods:
+            raise ValueError(f"Method not recognized. Available methods: {list(self.methods.keys())}")
+        self.method = method
+
+
+# Example usage:
+# feature_maps1 and feature_maps2 are numpy arrays of shape (batch_size, *feature_map_dimensions)
+
+# similarity_calculator = FeatureMapSimilarityBatch(method='cosine')
+# similarities = similarity_calculator(feature_maps1, feature_maps2)
 def euclidean_distance(feature_map1, feature_map2):
     """
     计算两个特征图的欧氏距离
@@ -104,18 +171,26 @@ def inner_product_matrix(feature_maps, method='cosine'):
     :param method: 相似度计算方法
     :return: 内积矩阵
     """
-    fmsstt = FeatureMapSimilarity(method=method)
-    # 计算特征图数量
-    n = len(feature_maps)
-    # 初始化内积矩阵
+    fmsstt = FeatureMapSimilarityBatch(method=method)
+    n = feature_maps.shape[1]
     matrix = np.zeros((n, n))
+
+    # 将特征图转换成扁平的形式 (group_size * C, H * W)
+    flattened_feature_maps = feature_maps.reshape(-1, feature_maps.shape[2] * feature_maps.shape[3])
+
     # 计算内积矩阵
     for i in range(n):
         for j in range(i, n):
-            similarity = abs(fmsstt(feature_maps[i], feature_maps[j]))
-            # print(similarity)
+            # 选取两个特征图
+            fm_i = flattened_feature_maps[i::n]  # 选取所有组的第i个特征图
+            fm_j = flattened_feature_maps[j::n]  # 选取所有组的第j个特征图
+
+            # 计算特征图之间的相似度，假设fmsstt可以接受两个批量的输入
+            similarity = fmsstt(fm_i, fm_j).mean()
+
             matrix[i, j] = similarity
-            matrix[j, i] = similarity
+            matrix[j, i] = similarity  # 利用对称性
+
     return matrix
 
 
@@ -129,7 +204,7 @@ def compute_knowledge(feature_maps, method='cosine'):
         """
     # 如果是torch.Tensor类型，则转换为numpy.ndarray类型
     ## 如果是torch.Tensor类型，则转换为numpy.ndarray类型
-    print(feature_maps.shape)
+    # print(feature_maps.shape)
     if isinstance(feature_maps, torch.Tensor):
         feature_maps = feature_maps.cpu().numpy()
 
@@ -137,6 +212,7 @@ def compute_knowledge(feature_maps, method='cosine'):
     # n = len(feature_maps)
     matrix = inner_product_matrix(feature_maps, method)
     eigenvalues, eigenvectors = np.linalg.eig(matrix)
+    print(feature_maps.shape, matrix.shape)
 
     # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
     eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
@@ -156,18 +232,20 @@ def compute_knowledge(feature_maps, method='cosine'):
 
     # 计算原矩阵的特征图向量, 求group_size的特征图的平均特征图
     feature = np.zeros(feature_maps[0].shape)
-    print(feature.shape)
+    # print(feature.shape)
     for i in range(feature_maps.shape[0]):
         feature += feature_maps[i]
     feature /= feature_maps.shape[0]  # (C, H, W)
-    print(feature.shape)
+    # print(feature.shape)
 
     # 计算特征图向量，通过按照特征向量对特征图进行变换
     # feature_vector_matrices = np.einsum('ij,jklm->iklm', eigenvectors, feature_maps)
     vector_v = np.zeros((feature.shape[0], feature.shape[0], feature.shape[1], feature.shape[2]))  # (C, C, H, W)
+    print(eigenvectors.shape, feature.shape)
     for i in range(len(eigenvectors)):
         for j in range(feature.shape[0]):
-            vector_v[j][i] = eigenvectors[j][i] * feature[j]
+            a = eigenvectors[j][i] * feature[j]
+            vector_v[j][i] = a
 
     # 交换第一第二维度方便索引值
     vector_v = np.swapaxes(vector_v, 0, 1)  # (C, C, H, W)

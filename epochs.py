@@ -304,7 +304,7 @@ class NEComputeEpoch(BaseEpoch):
                     label = target.item()
                     if class_counts[label] < self.group_size:
                         for key, value in logits.items():
-                            print(value.shape)
+                            # print(value.shape)
                             if key in logits_list[label]:
                                 logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
                                                                     dim=0)
