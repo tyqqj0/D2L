@@ -56,13 +56,13 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy = train_epoch.run(epoch + 1)
         val_loss, val_accuracy = val_epoch.run(epoch + 1)
-        knowes, logits_list = lid_compute_epoch.run(epoch + 1)
+        # knowes, logits_list = lid_compute_epoch.run(epoch + 1)
         expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         ne_dict = ne_compute_epoch.run(epoch + 1)
-        pca_compute_epoch(epoch + 1)
+        pca_compute_epoch.run(epoch + 1)
 
-        if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
-            criterion.update(knowes, epoch + 1)
+        # if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
+        #     criterion.update(knowes, epoch + 1)
         scheduler.step()
 
         # 打印训练信息
@@ -85,26 +85,26 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
 
-            print('knowledge:', knowes)
+            # print('knowledge:', knowes)
             print('ne:', ne_dict)
-            logbox.log_metrics('knowledge', knowes, step=epoch + 1)
+            # logbox.log_metrics('knowledge', knowes, step=epoch + 1)
             logbox.log_metrics('ne', ne_dict, step=epoch + 1)
 
             # 绘制knows图像
-            plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge',
-                           pre=args.model + '_' + str(args.noise_ratio))
+            # plot_layer_all(knowes, epoch + 1, y_lim=25, folder='knowledge',
+            #                pre=args.model + '_' + str(args.noise_ratio))
 
             # 绘制ne图像
             plot_layer_all(ne_dict, epoch + 1, y_lim=6, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
 
             # 保存knows参数文件数
-            dict_to_json(knowes.update(
-                {'info:model': args.model, 'info:noise_ratio': args.noise_ratio, 'info:data_set': args.dataset}),
-                epoch + 1, pre=args.model + '_' + str(int(args.noise_ratio * 100)))
+            # dict_to_json(knowes.update(
+            #     {'info:model': args.model, 'info:noise_ratio': args.noise_ratio, 'info:data_set': args.dataset}),
+            #     epoch + 1, pre=args.model + '_' + str(int(args.noise_ratio * 100)))
 
             # 绘制知识图谱, 遍历每个类，传入当前epoch的层logits
-            if args.knowledge_group_size > 1:
-                plot_kmp(epoch, logits_list, model_name=args.model, noise_ratio=args.noise_ratio, folder='kn_map')
+            # if args.knowledge_group_size > 1:
+            #     plot_kmp(epoch, logits_list, model_name=args.model, noise_ratio=args.noise_ratio, folder='kn_map')
 
         # 提前停止条件, 若多个epoch训练准确率都在1左右
         if train_accuracy >= 0.99:

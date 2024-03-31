@@ -16,8 +16,10 @@ from torchvision.models import ResNet50_Weights
 
 
 class ResNet50FeatureExtractor(nn.Module):
-    def __init__(self, pretrained=False, num_classes=10, in_channels=1):
+    def __init__(self, pretrained=False, num_classes=10, in_channels=1, flatten=False):
         super(ResNet50FeatureExtractor, self).__init__()
+        self.flatten = flatten
+        # 使用ResNet18模型，设置输入通道数为1，输出类别数为10
         if pretrained:
             # 使用默认的预训练权重
             weights = ResNet50_Weights.DEFAULT
@@ -47,24 +49,31 @@ class ResNet50FeatureExtractor(nn.Module):
             conv1_weight = self.resnet50.conv1.weight.data.mean(dim=1, keepdim=True)
             self.resnet50.conv1.weight.data = conv1_weight
 
+
+    def flatten_fun(self, x):
+        if self.flatten:
+            return torch.flatten(x, 1)
+        else:
+            return x
+
     def forward(self, x):
         features = {}
         x = self.resnet50.conv1(x)
-        features['conv1'] = torch.flatten(x, 1)
+        features['conv1'] = self.flatten_fun(x)
         x = self.resnet50.bn1(x)
-        features['bn1'] = torch.flatten(x, 1)
+        features['bn1'] = self.flatten_fun(x)
         x = self.resnet50.relu(x)
-        features['relu1'] = torch.flatten(x, 1)
+        features['relu1'] = self.flatten_fun(x)
         x = self.resnet50.maxpool(x)
-        features['maxpool'] = torch.flatten(x, 1)
+        features['maxpool'] = self.flatten_fun(x)
         x = self.resnet50.layer1(x)
-        features['layer1'] = torch.flatten(x, 1)
+        features['layer1'] = self.flatten_fun(x)
         x = self.resnet50.layer2(x)
-        features['layer2'] = torch.flatten(x, 1)
+        features['layer2'] = self.flatten_fun(x)
         x = self.resnet50.layer3(x)
-        features['layer3'] = torch.flatten(x, 1)
+        features['layer3'] = self.flatten_fun(x)
         x = self.resnet50.layer4(x)
-        features['layer4'] = torch.flatten(x, 1)
+        features['layer4'] = self.flatten_fun(x)
         x = self.resnet50.avgpool(x)
         # features['avgpool'] = torch.flatten(x, 1)
         x = torch.flatten(x, 1)
