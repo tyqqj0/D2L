@@ -172,10 +172,10 @@ def inner_product_matrix(feature_maps, method='cosine'):
     :param method: 相似度计算方法
     :return: 内积矩阵
     """
-    _, C, H, W = feature_maps.size()
+    n, C, H, W = feature_maps.size()
     matrix = torch.zeros((C, C), device=feature_maps.device)
 
-    # 将所有的H,W归一化
+    # 如果使用 'cosine' 方法，归一化特征图
     if method == 'cosine':
         feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
 
@@ -199,52 +199,44 @@ def compute_knowledge(feature_maps, method='cosine'):
         :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
         """
     # 如果是torch.Tensor类型，则复制
-    if isinstance(feature_maps, torch.Tensor):
-        feature_maps = feature_maps.clone().detach()
-    else:
-        raise ValueError('Invalid type of feature_maps.')
-
     # 获取内积矩阵
-    # n = len(feature_maps)
     matrix = inner_product_matrix(feature_maps, method)
-    eigenvalues, eigenvectors = np.linalg.eig(matrix)
-    print(feature_maps.shape, matrix.shape)
+    eigenvalues, eigenvectors = torch.linalg.eig(matrix)
+    eigenvalues = eigenvalues.real  # 取实数部分
+    eigenvectors = eigenvectors.real
 
     # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
-    eigenvalues = np.clip(eigenvalues, a_min=0, a_max=None)
+    eigenvalues = torch.clamp(eigenvalues, min=0)
 
     # 归一化特征值，以避免除以零
-    total = np.sum(eigenvalues)
+    total = torch.sum(eigenvalues)
     if total > 0:
         eigenvalues /= total
-    else:
-        # 如果所有特征值都是零，这意味着熵为零
-        return 0
 
     # 对特征值排序
-    idx = np.argsort(-eigenvalues)
+    idx = torch.argsort(eigenvalues, descending=True)
     eigenvalues = eigenvalues[idx]
-    eigenvectors = eigenvectors[:, idx]  # (C, C)， 其中每一列是一个特征向量, 应使用按列的方式索引即eigenvectors[:, i]
+    eigenvectors = eigenvectors[:, idx]  # (C, C)，每一列是一个特征向量
 
     # 计算原矩阵的特征图向量, 求group_size的特征图的平均特征图
-    feature = np.zeros(feature_maps[0].shape)
-    # print(feature.shape)
-    for i in range(feature_maps.shape[0]):
-        feature += feature_maps[i]
-    feature /= feature_maps.shape[0]  # (C, H, W)
-    # print(feature.shape)
-
+    feature = torch.mean(feature_maps, dim=0)  # (C, H, W)
+    # print(feature.shape, eigenvectors.shape)
     # 计算特征图向量，通过按照特征向量对特征图进行变换
-    # feature_vector_matrices = np.einsum('ij,jklm->iklm', eigenvectors, feature_maps)
-    vector_v = np.zeros((feature.shape[0], feature.shape[0], feature.shape[1], feature.shape[2]))  # (C, C, H, W)
-    print(eigenvectors.shape, feature.shape)
-    for i in range(len(eigenvectors)):
-        for j in range(feature.shape[0]):
-            a = eigenvectors[j][i] * feature[j]
-            vector_v[j][i] = a
+    C, H, W = feature.shape
+    # 创建一个形状为 [C, C, H, W] 的全零张量
+    diag_feature = torch.zeros(C, C, H, W, device=feature.device)
+    # print(diag_feature.shape)
 
-    # 交换第一第二维度方便索引值
-    vector_v = np.swapaxes(vector_v, 0, 1)  # (C, C, H, W)
+    # 填充对角线
+    for i in range(C):
+        diag_feature[i, i] = feature[i]
+    vector_v = torch.matmul(eigenvectors, diag_feature.view(C, C, -1))
+
+    # 重塑 vector_v 以获得每个特征对应的空间布局
+    # 每一个主成分都应该有形状 [H, W]
+    vector_v = vector_v.view(C, C, H, W)  # 结果应该是 [64, 64, 14, 14]
+    # print(vector_v.shape)
+    vector_v = vector_v.view(eigenvectors.shape[1], *feature.shape)  # (C, C, H, W)
 
     # 返回特征值和特征向量
     return eigenvalues, vector_v
@@ -258,10 +250,15 @@ def knowledge_entropy(feature_maps, method='cosine'):
     :param method: 相似度计算方法
     :return: 知识熵
     """
-    # 获取特征值
+    # 假设 compute_knowledge 是一个返回特征值的函数，并且这些特征值已经在 [0, 1] 范围内归一化
     eigenvalues, _ = compute_knowledge(feature_maps, method)
 
-    # 计算熵，忽略零特征值，因为 0 * log2(0) 应该是 0
-    entropy = -np.sum(eigenvalues[eigenvalues > 0] * np.log2(eigenvalues[eigenvalues > 0]))
+    # 选择大于0的特征值
+    valid_eigenvalues = eigenvalues[eigenvalues > 0]
 
-    return entropy
+    # 计算熵，忽略零特征值
+    # 使用 PyTorch 的 log 函数和乘法
+    entropy = -torch.sum(valid_eigenvalues * torch.log2(valid_eigenvalues))
+
+    # 将结果转换为标量，如果需要的话
+    return entropy.item()
