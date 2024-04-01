@@ -172,20 +172,20 @@ def inner_product_matrix(feature_maps, method='cosine'):
     :param method: 相似度计算方法
     :return: 内积矩阵
     """
-    n, C, H, W = feature_maps.size()
+    _, C, H, W = feature_maps.size()
+    matrix = torch.zeros((C, C), device=feature_maps.device)
 
-    # 如果使用 'cosine' 方法，归一化特征图
+    # 将所有的H,W归一化
     if method == 'cosine':
         feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
 
-    # 展平 H 和 W 维度
-    feature_maps_flat = feature_maps.view(n, C, H * W)
-
-    # 在 H*W 维度上求和以获得内积矩阵（Gram 矩阵）
-    matrix = torch.bmm(feature_maps_flat, feature_maps_flat.transpose(1, 2))
-
-    # 由于内积矩阵是对称的，这里我们取其平均值
-    matrix = 0.5 * (matrix + matrix.transpose(1, 2))
+    # 计算内积矩阵, 遍历h, w计算对应的gram求和
+    for i in range(H):
+        for j in range(W):
+            # 选取特征图的一个像素点
+            pixel = feature_maps[:, :, i, j]
+            # 计算内积
+            matrix += torch.mm(pixel.t(), pixel)
 
     return matrix
 
