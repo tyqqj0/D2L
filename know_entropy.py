@@ -11,6 +11,7 @@ import sympy as sp
 import os
 import matplotlib.pyplot as plt
 import torch
+import torch.distributions
 
 
 # import cv2
@@ -167,29 +168,24 @@ class FeatureMapSimilarity:
 def inner_product_matrix(feature_maps, method='cosine'):
     """
     计算数据特征图内积矩阵
-    :param feature_maps: 特征图列表 (group_size, C, H, W)
+    :param feature_maps: 特征图列表 (group_size, C, H, W) torch
     :param method: 相似度计算方法
     :return: 内积矩阵
     """
-    fmsstt = FeatureMapSimilarityBatch(method=method)
-    n = feature_maps.shape[1]
-    matrix = np.zeros((n, n))
+    n, C, H, W = feature_maps.size()
 
-    # 将特征图转换成扁平的形式 (group_size * C, H * W)
-    flattened_feature_maps = feature_maps.reshape(-1, feature_maps.shape[2] * feature_maps.shape[3])
+    # 如果使用 'cosine' 方法，归一化特征图
+    if method == 'cosine':
+        feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
 
-    # 计算内积矩阵
-    for i in range(n):
-        for j in range(i, n):
-            # 选取两个特征图
-            fm_i = flattened_feature_maps[i::n]  # 选取所有组的第i个特征图
-            fm_j = flattened_feature_maps[j::n]  # 选取所有组的第j个特征图
+    # 展平 H 和 W 维度
+    feature_maps_flat = feature_maps.view(n, C, H * W)
 
-            # 计算特征图之间的相似度，假设fmsstt可以接受两个批量的输入
-            similarity = fmsstt(fm_i, fm_j).mean()
+    # 在 H*W 维度上求和以获得内积矩阵（Gram 矩阵）
+    matrix = torch.bmm(feature_maps_flat, feature_maps_flat.transpose(1, 2))
 
-            matrix[i, j] = similarity
-            matrix[j, i] = similarity  # 利用对称性
+    # 由于内积矩阵是对称的，这里我们取其平均值
+    matrix = 0.5 * (matrix + matrix.transpose(1, 2))
 
     return matrix
 
@@ -202,11 +198,11 @@ def compute_knowledge(feature_maps, method='cosine'):
         :param method: 相似度计算方法
         :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
         """
-    # 如果是torch.Tensor类型，则转换为numpy.ndarray类型
-    ## 如果是torch.Tensor类型，则转换为numpy.ndarray类型
-    # print(feature_maps.shape)
+    # 如果是torch.Tensor类型，则复制
     if isinstance(feature_maps, torch.Tensor):
-        feature_maps = feature_maps.cpu().numpy()
+        feature_maps = feature_maps.clone().detach()
+    else:
+        raise ValueError('Invalid type of feature_maps.')
 
     # 获取内积矩阵
     # n = len(feature_maps)
