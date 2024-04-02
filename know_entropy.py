@@ -179,14 +179,11 @@ def inner_product_matrix(feature_maps, method='cosine'):
     if method == 'cosine':
         feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
 
-    # 计算内积矩阵, 遍历h, w计算对应的gram求和
-    for i in range(H):
-        for j in range(W):
-            # 选取特征图的一个像素点
-            pixel = feature_maps[:, :, i, j]
-            # 计算内积
-            matrix += torch.mm(pixel.t(), pixel)
+    # 计算内积矩阵, 重整特征图
+    feature_maps = feature_maps.view(n, C, -1)  # (group_size, C, H*W)
 
+    # 使用 PyTorch
+    matrix = torch.matmul(feature_maps, feature_maps.transpose(0, 1))  # (C, C)
     return matrix
 
 
