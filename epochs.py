@@ -375,7 +375,7 @@ class PCACorrectEpoch(BaseEpoch):
                 for key, value in logits_per_class.items():
                     # 暂时只取最后一层
                     if key == 'layer4':
-                        print(label, key)
+                        print(label, key, value.shape)
                         # pca_dict[label][key] = compute_knowledge(value)
                         _, pca_dict[label][key] = compute_knowledge(value)
 
@@ -390,7 +390,7 @@ class PCACorrectEpoch(BaseEpoch):
             print(confdt)
             # 获取2中与该成分对齐的样本
             logits2 = logits_list[cl2]['layer4']
-            logits2 = logits2.cpu().numpy()
+            logits2 = logits2
             for i in range(logits2.shape[0]):
                 if compute_vec_corr(class2to1, logits2[i], fimttt) > 0.85:
                     pca_corrects.append(logits2[i])

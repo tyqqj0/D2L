@@ -208,9 +208,10 @@ def compute_knowledge(feature_maps, method='dot'):
         """
     if method == 'dot':
         # 将特征图张量转换为矩阵
-        feature_maps = feature_maps.view(feature_maps.size(0), -1)
+        feature_maps1 = feature_maps.view(feature_maps.size(0), -1)
         # 计算内积矩阵
-        matrix = torch.matmul(feature_maps, feature_maps.t())
+        matrix = torch.matmul(feature_maps1.t(), feature_maps1)
+        print(matrix.shape)
     else:
         # 如果是torch.Tensor类型，则复制
         # 获取内积矩阵
@@ -236,7 +237,9 @@ def compute_knowledge(feature_maps, method='dot'):
     feature = torch.mean(feature_maps, dim=0)  # (C, H, W)
     # print(feature.shape, eigenvectors.shape)
     # 计算特征图向量，通过按照特征向量对特征图进行变换
-    C, H, W = feature.shape
+    n, C, H, W = feature_maps.shape
+    # print(feature.device)
+    print(feature.shape,eigenvectors.shape)
     # 创建一个形状为 [C, C, H, W] 的全零张量
     diag_feature = torch.zeros(C, C, H, W, device=feature.device)
     # print(diag_feature.shape)

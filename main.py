@@ -57,7 +57,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         train_loss, train_accuracy = train_epoch.run(epoch + 1)
         val_loss, val_accuracy = val_epoch.run(epoch + 1)
         # knowes, logits_list = lid_compute_epoch.run(epoch + 1)
-        expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
+        # expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         ne_dict = ne_compute_epoch.run(epoch + 1)
         pca_compute_epoch.run(epoch + 1)
 
