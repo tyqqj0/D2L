@@ -322,7 +322,7 @@ class NEComputeEpoch(BaseEpoch):
         ne_dict = defaultdict(list)
         for label, logits_per_class in logits_list.items():
             for key, value in logits_per_class.items():
-                print(value.shape)
+                # print(value.shape)
                 ne_dict[key].append(knowledge_entropy(value))
             # ne_dict[key] = np.mean(ne_dict[key])
 
@@ -376,6 +376,7 @@ class PCACorrectEpoch(BaseEpoch):
                 for key, value in logits_per_class.items():
                     # 暂时只取最后一层
                     if key == 'layer4':
+                        # print(label)
                         # pca_dict[label][key] = compute_knowledge(value)
                         pca_dict[label][key] = compute_knowledge(value)
 
@@ -388,8 +389,8 @@ class PCACorrectEpoch(BaseEpoch):
 
             # 计算要修正的主成分
             pca_corrects = []
-            cl1 = '1 - one'
-            cl2 = '2 - two'
+            cl1 = 1
+            cl2 = 2
             # 先用前两个类为例
             class2to1 = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
 
