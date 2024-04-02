@@ -183,7 +183,18 @@ def inner_product_matrix(feature_maps, method='cosine'):
     feature_maps = feature_maps.view(n, C, -1)  # (group_size, C, H*W)
 
     # 使用 PyTorch
-    matrix = torch.matmul(feature_maps, feature_maps.transpose(0, 1))  # (C, C)
+    # 使用 torch.bmm 对整个批次执行批处理矩阵乘法
+    # 首先扩展尺寸以符合 bmm 要求，得到尺寸为 (n, C, 1, H*W)
+    feature_maps = feature_maps.unsqueeze(2)
+    # 矩阵乘法的另一个输入需要尺寸为 (n, 1, H*W, C)，通过转置和扩展尺寸得到
+    feature_maps_transposed = feature_maps.transpose(2, 3)
+    # 执行批处理矩阵乘法，得到尺寸为 (n, C, C) 的矩阵
+    matrix = torch.bmm(feature_maps, feature_maps_transposed)
+
+    # 将整个批次的结果求和，得到最终的内积矩阵
+    matrix = matrix.sum(dim=0)
+
+    print(matrix.shape)
     return matrix
 
 
