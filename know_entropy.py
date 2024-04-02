@@ -165,13 +165,15 @@ class FeatureMapSimilarity:
 
 
 # 计算数据特征图内积矩阵
-def inner_product_matrix(feature_maps, method='cosine'):
+def inner_product_matrix(feature_maps, method=None):
     """
     计算数据特征图内积矩阵
     :param feature_maps: 特征图列表 (group_size, C, H, W) torch
     :param method: 相似度计算方法
     :return: 内积矩阵
     """
+    if len(feature_maps.shape) == 2:
+        return torch.matmul(feature_maps, feature_maps.t())
     n, C, H, W = feature_maps.size()
     matrix = torch.zeros((C, C), device=feature_maps.device)
 
@@ -199,19 +201,40 @@ def inner_product_matrix(feature_maps, method='cosine'):
 
 
 # 计算数据特征知识
-def compute_knowledge(feature_maps, method='dot'):
+def compute_knowledge(feature_maps, method='cosine'):
     """
         计算一组数据特征知识
         :param feature_maps: 特征图列表 (group_size, C, H, W)
         :param method: 相似度计算方法
         :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
         """
-    if method == 'dot':
+    if method == 'dot' or len(feature_maps.shape) == 2:
         # 将特征图张量转换为矩阵
+        # print(feature_maps.shape[1])
         feature_maps1 = feature_maps.view(feature_maps.size(0), -1)
         # 计算内积矩阵
         matrix = torch.matmul(feature_maps1.t(), feature_maps1)
-        print(matrix.shape)
+        # print(matrix.shape)
+        eigenvalues, eigenvectors = torch.linalg.eig(matrix)
+        # print(eigenvectors.shape)
+        eigenvalues = eigenvalues.real  # 取实数部分
+        eigenvectors = eigenvectors.real
+
+        # 由于数值问题，特征值可能包含微小的负数，这里将它们置为零
+        eigenvalues = torch.clamp(eigenvalues, min=0)
+
+        # 归一化特征值，以避免除以零
+        total = torch.sum(eigenvalues)
+        if total > 0:
+            eigenvalues /= total
+
+        # 对特征值排序
+        idx = torch.argsort(eigenvalues, descending=True)
+        eigenvalues = eigenvalues[idx]
+        eigenvectors = eigenvectors[:, idx]  # (C, C)，每一列是一个特征向量
+
+        return eigenvalues, eigenvectors
+
     else:
         # 如果是torch.Tensor类型，则复制
         # 获取内积矩阵
@@ -239,7 +262,7 @@ def compute_knowledge(feature_maps, method='dot'):
     # 计算特征图向量，通过按照特征向量对特征图进行变换
     n, C, H, W = feature_maps.shape
     # print(feature.device)
-    print(feature.shape,eigenvectors.shape)
+    # print(feature.shape,eigenvectors.shape)
     # 创建一个形状为 [C, C, H, W] 的全零张量
     diag_feature = torch.zeros(C, C, H, W, device=feature.device)
     # print(diag_feature.shape)

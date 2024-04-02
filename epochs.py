@@ -375,7 +375,7 @@ class PCACorrectEpoch(BaseEpoch):
                 for key, value in logits_per_class.items():
                     # 暂时只取最后一层
                     if key == 'layer4':
-                        print(label, key, value.shape)
+                        print(label, key)
                         # pca_dict[label][key] = compute_knowledge(value)
                         _, pca_dict[label][key] = compute_knowledge(value)
 
@@ -422,6 +422,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
 
     # 计算偏离置信程度
     confdt = 1 - index1 / indexmax
+    print(index1, indexmax)
 
     # 找到最大的相关系数
     max_corr_index = torch.argmax(corr_index)
@@ -482,27 +483,23 @@ def compute_vec_corr(vec1, vec2, fimttt):
     :return: 相关系数
     '''
     assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same.'
-    vec1 = vec1.detach()
-    vec2 = vec2.detach()
-    for i in range(vec1.shape[0]):
-        vec1[i] = vec1[i] - np.mean(vec1[i])
-        vec2[i] = vec2[i] - np.mean(vec2[i])
+    # 去除每个通道的均值
+    vec1_mean = vec1.mean(dim=(1, 2), keepdim=True)
+    vec2_mean = vec2.mean(dim=(1, 2), keepdim=True)
+    vec11 = vec1 - vec1_mean
+    vec21 = vec2 - vec2_mean
 
-    # 计算内积大小
-    inner_product = 0
-    for i in range(vec1.shape[0]):
-        inner_product += fimttt(vec1[i], vec2[i])
+    # 计算标准化后的向量的内积
+    inner_product = (vec11 * vec21).sum(dim=(1, 2))
 
     # 计算向量的模
-    norm1 = 0
-    norm2 = 0
-    for i in range(vec1.shape[0]):
-        norm1 += fimttt(vec1[i], vec1[i])
-        norm2 += fimttt(vec2[i], vec2[i])
-    norm1 = np.sqrt(norm1)
-    norm2 = np.sqrt(norm2)
+    norm1 = torch.sqrt((vec11 * vec11).sum(dim=(1, 2)))
+    norm2 = torch.sqrt((vec21 * vec21).sum(dim=(1, 2)))
 
-    return inner_product / (norm1 * norm2)
+    # 计算每个通道的相关系数并累加
+    corr = (inner_product / (norm1 * norm2)).sum()
+
+    return corr.item()  # 返回标量值
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

@@ -265,7 +265,10 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
     full_file_path = os.path.join(path, folder, file_name)
-    images = images.cpu().numpy()
+    if isinstance(images, list):
+        images = np.array(images)
+    else:
+        images = images.cpu().numpy()
 
 
 
