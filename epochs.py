@@ -14,14 +14,13 @@ from torch.cuda.amp import autocast
 from tqdm import tqdm
 
 from LID import get_lids_batches
-from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilarity# n, knowledge_entropy2
+from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilarity  # n, knowledge_entropy2
 from utils.BOX import logbox
 from utils.plotfn import kn_map, plot_wrong_label, plot_images
 
 plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
 plot_images = logbox.log_artifact_autott(plot_images)
-
 
 
 class BaseEpoch:
@@ -380,20 +379,15 @@ class PCACorrectEpoch(BaseEpoch):
                         # pca_dict[label][key] = compute_knowledge(value)
                         _, pca_dict[label][key] = compute_knowledge(value)
 
-
-
-
             fimttt = FeatureMapSimilarity(method='cosine')
-
-
 
             # 计算要修正的主成分
             pca_corrects = []
             cl1 = 1
             cl2 = 2
             # 先用前两个类为例
-            class2to1 = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
-
+            class2to1, confdt = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
+            print(confdt)
             # 获取2中与该成分对齐的样本
             logits2 = logits_list[cl2]['layer4']
             logits2 = logits2.cpu().numpy()
@@ -405,14 +399,6 @@ class PCACorrectEpoch(BaseEpoch):
             plot_images(pca_corrects, epoch, folder='pca_correct', pre='pca_correct2to1')
 
 
-
-
-
-
-
-
-
-
 # 从两个类别的主成分中计算要修正的成分
 def compute_pca_correct(pca1, pca2, fimttt):
     '''
@@ -420,18 +406,32 @@ def compute_pca_correct(pca1, pca2, fimttt):
     :param pca1: 类别1的主成分 (C, C, H, W)
     :param pca2: 类别2的主成分 (C, C, H, W)
     '''
-    # 计算两个类别的主成分的相关系数矩阵
-    corr_matrix = compute_pca_corrcl(pca1, pca2, fimttt)
+    shape = pca1.shape
+    # 取出类别1中最大主成分
+    pca1 = pca1[0]  # (C, H, W)
+
+    # 整理
+    pca1 = pca1.view(-1)  # (C*H*W)
+    pca2 = pca2.view(pca2.shape[0], -1)  # (C, C*H*W)
 
     # 计算要修正的成分, 找到主成分2与主成分1最大成分最相关的主成分
-    max_corr_index = np.argmax(corr_matrix, axis=1) # 返回每行最大值的索引
+    corr_index = torch.matmul(pca2, pca1)  # (C)
 
-    # 取出主成分2中与主成分1最相关的主成分(C, H, W)
-    pca_correct2 = pca2[max_corr_index]
+    index1 = corr_index[0]  # 两个类别最大主成分的相关系数
+    indexmax = torch.max(corr_index)  # 最大相关系数
 
-    return pca_correct2
+    # 计算偏离置信程度
+    confdt = 1 - index1 / indexmax
 
+    # 找到最大的相关系数
+    max_corr_index = torch.argmax(corr_index)
+    # 取出最大相关系数对应的主成分
+    pca_correct2 = pca2[max_corr_index]  # (C*H*W)
 
+    # 还原形状
+    pca_correct2 = pca_correct2.view(shape[1], shape[2], shape[3])  # (C, H, W)
+
+    return pca_correct2, confdt
 
 
 # 计算主成分2和主成分1中最大主成分的相关系数
@@ -454,9 +454,6 @@ def compute_pca_corrcl(pca1, pca2, fimttt):
     return corr_matrix
 
 
-
-
-
 # 计算两个主成分的相关系数矩阵
 def compute_pca_corr(pca1, pca2, fimttt):
     '''
@@ -475,8 +472,6 @@ def compute_pca_corr(pca1, pca2, fimttt):
             corr_matrix[j, i] = corr_matrix[i, j]
 
     return corr_matrix
-
-
 
 
 def compute_vec_corr(vec1, vec2, fimttt):
@@ -498,7 +493,6 @@ def compute_vec_corr(vec1, vec2, fimttt):
     for i in range(vec1.shape[0]):
         inner_product += fimttt(vec1[i], vec2[i])
 
-
     # 计算向量的模
     norm1 = 0
     norm2 = 0
@@ -509,7 +503,6 @@ def compute_vec_corr(vec1, vec2, fimttt):
     norm2 = np.sqrt(norm2)
 
     return inner_product / (norm1 * norm2)
-
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

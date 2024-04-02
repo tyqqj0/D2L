@@ -199,16 +199,22 @@ def inner_product_matrix(feature_maps, method='cosine'):
 
 
 # 计算数据特征知识
-def compute_knowledge(feature_maps, method='cosine'):
+def compute_knowledge(feature_maps, method='dot'):
     """
         计算一组数据特征知识
         :param feature_maps: 特征图列表 (group_size, C, H, W)
         :param method: 相似度计算方法
         :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
         """
-    # 如果是torch.Tensor类型，则复制
-    # 获取内积矩阵
-    matrix = inner_product_matrix(feature_maps, method)
+    if method == 'dot':
+        # 将特征图张量转换为矩阵
+        feature_maps = feature_maps.view(feature_maps.size(0), -1)
+        # 计算内积矩阵
+        matrix = torch.matmul(feature_maps, feature_maps.t())
+    else:
+        # 如果是torch.Tensor类型，则复制
+        # 获取内积矩阵
+        matrix = inner_product_matrix(feature_maps, method)
     eigenvalues, eigenvectors = torch.linalg.eig(matrix)
     eigenvalues = eigenvalues.real  # 取实数部分
     eigenvectors = eigenvectors.real
