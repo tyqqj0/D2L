@@ -376,9 +376,9 @@ class PCACorrectEpoch(BaseEpoch):
                 for key, value in logits_per_class.items():
                     # 暂时只取最后一层
                     if key == 'layer4':
-                        # print(label)
+                        print(label, key)
                         # pca_dict[label][key] = compute_knowledge(value)
-                        pca_dict[label][key] = compute_knowledge(value)
+                        _, pca_dict[label][key] = compute_knowledge(value)
 
 
 
@@ -487,8 +487,8 @@ def compute_vec_corr(vec1, vec2, fimttt):
     :return: 相关系数
     '''
     assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same.'
-    vec1 = vec1.copy()
-    vec2 = vec2.copy()
+    vec1 = vec1.detach()
+    vec2 = vec2.detach()
     for i in range(vec1.shape[0]):
         vec1[i] = vec1[i] - np.mean(vec1[i])
         vec2[i] = vec2[i] - np.mean(vec2[i])
