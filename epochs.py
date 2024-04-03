@@ -319,7 +319,7 @@ class NEComputeEpoch(BaseEpoch):
 
         # 计算所有层的知识熵
         ne_dict = defaultdict(list)
-        for label, logits_per_class in logits_list.items():
+        for label, logits_per_class in tqdm(logits_list.items(), desc='Computing knowledge entropy'):
             for key, value in logits_per_class.items():
                 # print(value.shape)
                 ne_dict[key].append(knowledge_entropy(value))
@@ -371,7 +371,7 @@ class PCACorrectEpoch(BaseEpoch):
 
             # 计算所有层特征向量图的主成分({label, {layer, (C, C, H, W)}})
             pca_dict = defaultdict(dict)
-            for label, logits_per_class in logits_list.items():
+            for label, logits_per_class in tqdm(logits_list.items(), desc='Computing PCA'):
                 for key, value in logits_per_class.items():
                     # 暂时只取最后一层
                     if key == 'layer4':

@@ -34,6 +34,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     # 实例化epoch
     # 通过BaseEpoch设置最大epoch数
     stop_count = 0
+    timert = utils.EpochTimer()
     BaseEpoch.set_max_epoch(args.epochs)
     train_epoch = TrainEpoch(model, train_loader, optimizer, criterion, device,
                              scaler=GradScaler() if args.amp else None)
@@ -50,6 +51,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval)
 
     for epoch in range(args.epochs):
+        timert._start()
         print('\n')
         if stop_count > 5 and epoch < args.epochs - 1:
             continue
@@ -107,7 +109,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             #     plot_kmp(epoch, logits_list, model_name=args.model, noise_ratio=args.noise_ratio, folder='kn_map')
 
         # 提前停止条件, 若多个epoch训练准确率都在1左右
-        if train_accuracy >= 0.99:
+        if train_accuracy >= 0.95:
             print('near cpt', stop_count)
             stop_count += 1
 
@@ -117,6 +119,11 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # MLflow记录模型
         if ((epoch + 1) % args.save_interval == 0 or epoch + 1 == args.epochs) and args.save_interval != -1:
             logbox.save_model(model.state_dict())
+
+        # 打印记录时间
+        print(timert)
+        t, speed_pm, speed_ph = timert._end()
+        logbox.log_metrics('time', {'time': t, 'speed_pm': speed_pm, 'speed_ph': speed_ph}, step=epoch + 1)
 
     # MLflow记录参数
     logbox.log_params({
