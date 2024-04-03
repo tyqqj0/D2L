@@ -258,6 +258,8 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
     :param path: str, 路径
     :return: plot
     '''
+    if len(images) == 0:
+        return None
     folder = folder
     file_name = pre + '_' + 'epoch_{:03d}'.format(epoch)
     # 如果path不为None，则在path中创建文件夹

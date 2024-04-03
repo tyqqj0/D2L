@@ -61,7 +61,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # knowes, logits_list = lid_compute_epoch.run(epoch + 1)
         # expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         ne_dict = ne_compute_epoch.run(epoch + 1)
-        # pca_compute_epoch.run(epoch + 1)
+        pca_compute_epoch.run(epoch + 1)
 
         # if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
         #     criterion.update(knowes, epoch + 1)

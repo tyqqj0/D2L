@@ -375,7 +375,7 @@ class PCACorrectEpoch(BaseEpoch):
                 for key, value in logits_per_class.items():
                     # 暂时只取最后一层
                     if key == 'layer4':
-                        print(label, key)
+                        # print(label, key)
                         # pca_dict[label][key] = compute_knowledge(value)
                         _, pca_dict[label][key] = compute_knowledge(value)
 
@@ -387,12 +387,14 @@ class PCACorrectEpoch(BaseEpoch):
             cl2 = 2
             # 先用前两个类为例
             class2to1, confdt = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
-            print(confdt)
+            print('confdt', confdt)
             # 获取2中与该成分对齐的样本
             logits2 = logits_list[cl2]['layer4']
             logits2 = logits2
             for i in range(logits2.shape[0]):
-                if compute_vec_corr(class2to1, logits2[i], fimttt) > 0.85:
+                simttt = compute_vec_corr(class2to1, logits2[i], fimttt)
+                print(simttt)
+                if simttt > 0.85:
                     pca_corrects.append(logits2[i])
 
             # 保存修正的样本图片
@@ -414,11 +416,19 @@ def compute_pca_correct(pca1, pca2, fimttt):
     pca1 = pca1.view(-1)  # (C*H*W)
     pca2 = pca2.view(pca2.shape[0], -1)  # (C, C*H*W)
 
+    # 计算范数
+    norm_pca1 = torch.norm(pca1)
+    norm_pca2 = torch.norm(pca2, dim=1, keepdim=True)
+
+    # 避免除以零的情况
+    pca1 = pca1 / norm_pca1 if norm_pca1 > 0 else pca1
+    pca2 = pca2 / norm_pca2.where(norm_pca2 > 0, torch.ones_like(norm_pca2))
+
     # 计算要修正的成分, 找到主成分2与主成分1最大成分最相关的主成分
     corr_index = torch.matmul(pca2, pca1)  # (C)
 
-    index1 = corr_index[0]  # 两个类别最大主成分的相关系数
-    indexmax = torch.max(corr_index)  # 最大相关系数
+    index1 = abs(corr_index[0])  # 两个类别最大主成分的相关系数
+    indexmax = abs(torch.max(corr_index))  # 最大相关系数
 
     # 计算偏离置信程度
     confdt = 1 - index1 / indexmax
@@ -431,6 +441,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
 
     # 还原形状
     pca_correct2 = pca_correct2.view(shape[1], shape[2], shape[3])  # (C, H, W)
+    # print(pca_correct2.shape)
 
     return pca_correct2, confdt
 
@@ -495,6 +506,10 @@ def compute_vec_corr(vec1, vec2, fimttt):
     # 计算向量的模
     norm1 = torch.sqrt((vec11 * vec11).sum(dim=(1, 2)))
     norm2 = torch.sqrt((vec21 * vec21).sum(dim=(1, 2)))
+
+    # 避免除以零的情况
+    norm1 = torch.where(norm1 == 0, torch.tensor(1.0), norm1)
+    norm2 = torch.where(norm2 == 0, torch.tensor(1.0), norm2)
 
     # 计算每个通道的相关系数并累加
     corr = (inner_product / (norm1 * norm2)).sum()

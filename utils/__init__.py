@@ -19,8 +19,8 @@ class EpochTimer:
     def _end(self):
         if self.start is None:
             raise ValueError('Timer not started')
-        if self.end is not None:
-            self.start = self.end
+        if self.end is None:
+            self.end = time.time()
         t = self.end - self.start
         speed_pm = t / 60
         speed_ph = speed_pm / 60
