@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import torch
 from sklearn.manifold import TSNE
 
 
@@ -267,10 +268,11 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
     if not os.path.exists(path + folder):
         os.makedirs(path + folder)
     full_file_path = os.path.join(path, folder, file_name)
-    if isinstance(images, list):
+    # 转换 images 到 NumPy 数组
+    if isinstance(images, list) or isinstance(images, torch.Tensor):
         images = np.array(images)
-    else:
-        images = images.cpu().numpy()
+    if images.ndim == 4:  # 如果 images 是四维张量 (batch_size, C, H, W)
+        images = images.transpose((0, 2, 3, 1))
 
 
 

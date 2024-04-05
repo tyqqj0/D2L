@@ -22,8 +22,8 @@ class EpochTimer:
         if self.end is None:
             self.end = time.time()
         t = self.end - self.start
-        speed_pm = t / 60
-        speed_ph = speed_pm / 60
+        speed_pm = 1 / (t / 60)
+        speed_ph = 1 / (speed_pm / 60)
         return t, speed_pm, speed_ph
 
     def __str__(self):

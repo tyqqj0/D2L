@@ -13,7 +13,7 @@ all = ['--amp',
        'run_name', 'show_ne',
        # '--exp_name', 'noisy_test'
        # 'run_name', '1',
-       '--exp_name', 'n6',
+       '--exp_name', 'n7',
        '--group_size', '15'
                        '--model', 'resnet50'
        ]

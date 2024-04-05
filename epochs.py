@@ -389,13 +389,16 @@ class PCACorrectEpoch(BaseEpoch):
             class2to1, confdt = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
             print('confdt', confdt)
             # 获取2中与该成分对齐的样本
-            logits2 = logits_list[cl2]['layer4']
-            logits2 = logits2
-            for i in range(logits2.shape[0]):
-                simttt = compute_vec_corr(class2to1, logits2[i], fimttt)
+            logits2 = [logits_list[cl2]['layer4'], logits_list[cl2]['image']]
+            # logits2 = logits2
+            # print(logits2.shape)
+            for i in range(logits2[0].shape[0]):
+                # print(torch.max(logits2[i]))
+                # print(class2to1.shape, logits2[i].shape)
+                simttt = compute_vec_corr(class2to1, logits2[0][i])
                 print(simttt)
-                if simttt > 0.85:
-                    pca_corrects.append(logits2[i])
+                if simttt > 0.65:
+                    pca_corrects.append(logits2[1][i].cpu())
 
             # 保存修正的样本图片
             plot_images(pca_corrects, epoch, folder='pca_correct', pre='pca_correct2to1')
@@ -408,6 +411,10 @@ def compute_pca_correct(pca1, pca2, fimttt):
     :param pca1: 类别1的主成分 (C, C, H, W)
     :param pca2: 类别2的主成分 (C, C, H, W)
     '''
+    # 复制值
+    pca1 = pca1.clone()
+    pca2 = pca2.clone()
+
     shape = pca1.shape
     # 取出类别1中最大主成分
     pca1 = pca1[0]  # (C, H, W)
@@ -428,14 +435,14 @@ def compute_pca_correct(pca1, pca2, fimttt):
     corr_index = torch.matmul(pca2, pca1)  # (C)
 
     index1 = abs(corr_index[0])  # 两个类别最大主成分的相关系数
-    indexmax = abs(torch.max(corr_index))  # 最大相关系数
+    indexmax = abs(torch.max(corr_index[1:]))  # 最大相关系数
 
     # 计算偏离置信程度
     confdt = 1 - index1 / indexmax
     print(index1, indexmax)
 
     # 找到最大的相关系数
-    max_corr_index = torch.argmax(corr_index)
+    max_corr_index = torch.argmax(corr_index[1:])
     # 取出最大相关系数对应的主成分
     pca_correct2 = pca2[max_corr_index]  # (C*H*W)
 
@@ -460,14 +467,14 @@ def compute_pca_corrcl(pca1, pca2, fimttt):
     corr_matrix = np.zeros(pca2.shape[0])
     i = 0
     for j in range(i, pca2.shape[0]):
-        corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j], fimttt)
+        corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
         corr_matrix[j, i] = corr_matrix[i, j]
 
     return corr_matrix
 
 
 # 计算两个主成分的相关系数矩阵
-def compute_pca_corr(pca1, pca2, fimttt):
+def compute_pca_corr(pca1, pca2):
     '''
     计算两个主成分的相关系数矩阵
     :param pca1: 主成分1 (C, C, H, W)
@@ -480,41 +487,63 @@ def compute_pca_corr(pca1, pca2, fimttt):
     corr_matrix = np.zeros((pca1.shape[0], pca2.shape[0]))
     for i in range(pca1.shape[0]):
         for j in range(i, pca2.shape[0]):
-            corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j], fimttt)
+            corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
             corr_matrix[j, i] = corr_matrix[i, j]
 
     return corr_matrix
 
 
-def compute_vec_corr(vec1, vec2, fimttt):
+def compute_vec_corr(vec1, vec2):
     '''
     计算两个向量的相关系数
     :param vec1: 向量1 (C, H, W)
     :param vec2: 向量2 (C, H, W)
     :return: 相关系数
     '''
+    # 复制值
+    vec1 = vec1.clone()
+    vec2 = vec2.clone()
     assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same.'
-    # 去除每个通道的均值
-    vec1_mean = vec1.mean(dim=(1, 2), keepdim=True)
-    vec2_mean = vec2.mean(dim=(1, 2), keepdim=True)
-    vec11 = vec1 - vec1_mean
-    vec21 = vec2 - vec2_mean
+    # print(vec1[1], vec2[1])
+
+    # 获取特征图的大小
+    _, H, W = vec1.size()
+
+    # 如果 H 和 W 大于1，那么执行去均值操作
+    if H > 1 and W > 1:
+        vec1_mean = vec1.mean(dim=(1, 2), keepdim=True)
+        vec2_mean = vec2.mean(dim=(1, 2), keepdim=True)
+
+        vec1 = vec1 - vec1_mean
+        vec2 = vec2 - vec2_mean
+
+    # print(vec1, vec2)
 
     # 计算标准化后的向量的内积
-    inner_product = (vec11 * vec21).sum(dim=(1, 2))
+    inner_product = (vec1 * vec2).sum(dim=(1, 2))
 
     # 计算向量的模
-    norm1 = torch.sqrt((vec11 * vec11).sum(dim=(1, 2)))
-    norm2 = torch.sqrt((vec21 * vec21).sum(dim=(1, 2)))
+    norm1 = torch.sqrt((vec1 * vec1).sum(dim=(1, 2)))
+    norm2 = torch.sqrt((vec2 * vec2).sum(dim=(1, 2)))
 
     # 避免除以零的情况
-    norm1 = torch.where(norm1 == 0, torch.tensor(1.0), norm1)
-    norm2 = torch.where(norm2 == 0, torch.tensor(1.0), norm2)
+    valid = (norm1 != 0) & (norm2 != 0)
+    corr = torch.where(valid, inner_product / (norm1 * norm2), torch.zeros_like(inner_product))
 
-    # 计算每个通道的相关系数并累加
-    corr = (inner_product / (norm1 * norm2)).sum()
+    # Additional debugging information
+    # print(f"Inner products: {inner_product}")
+    # print(f"Norms of vec1: {norm1}")
+    # print(f"Norms of vec2: {norm2}")
+    # print(f"Valid mask: {valid}")
+    # print(f"Correlation coefficients: {corr}")
 
-    return corr.item()  # 返回标量值
+    # 计算相关系数的累加值
+    corr_sum = abs(corr).sum()
+
+    # 然后除以元素的总数来得到平均值
+    corr_mean = corr_sum / corr.numel()
+
+    return corr_mean.item()  # 返回标量值
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

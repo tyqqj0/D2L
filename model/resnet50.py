@@ -58,6 +58,7 @@ class ResNet50FeatureExtractor(nn.Module):
 
     def forward(self, x):
         features = {}
+        features['image'] = x
         x = self.resnet50.conv1(x)
         features['conv1'] = self.flatten_fun(x)
         x = self.resnet50.bn1(x)
