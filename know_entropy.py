@@ -208,8 +208,15 @@ def compute_knowledge(feature_maps, method='cosine', normalize=True):
         :param method: 相似度计算方法
         :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
         """
+    # 如果hw为1
+    if feature_maps.size(2) == 1 and feature_maps.size(3) == 1:
+        feature_maps = feature_maps.view(feature_maps.size(0), -1)
     if normalize:
-        feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
+        # 如果大小为2
+        if len(feature_maps.shape) == 2:
+            feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=1)
+        else:
+            feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
     if method == 'dot' or len(feature_maps.shape) == 2:
         # 将特征图张量转换为矩阵
         # print(feature_maps.shape[1])

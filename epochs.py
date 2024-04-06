@@ -446,6 +446,10 @@ def compute_pca_correct(pca1, pca2, fimttt):
         pca1 = pca1[0].clone() # C
         pca2 = pca2.clone() # (C, C)
 
+        # 标准化
+        pca1 = pca1 / torch.norm(pca1)
+        pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0, torch.ones_like(pca2))
+
         # 计算相关系数
         corr_matrix = torch.matmul(pca2.T, pca1)  # (C)
 
@@ -560,6 +564,21 @@ def compute_vec_corr(vec1, vec2):
     vec2 = vec2.clone()
     assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same.'
     # print(vec1[1], vec2[1])
+
+    # 如果传入的是向量C
+    if len(vec1.shape) == 1:
+        # 计算相关系数
+        inner_product = torch.dot(vec1, vec2)
+        norm1 = torch.norm(vec1)
+        norm2 = torch.norm(vec2)
+
+        # 避免除以零的情况
+        norm1 = norm1 if norm1 > 0 else 1
+        norm2 = norm2 if norm2 > 0 else 1
+
+        corr = inner_product / (norm1 * norm2)
+
+        return corr.item()
 
     # 获取特征图的大小
     _, H, W = vec1.size()
