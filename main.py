@@ -48,8 +48,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                                 num_class=args.num_classes, group_size=args.knowledge_group_size,
                                                 interval=args.plot_interval)
     ne_compute_epoch = NEComputeEpoch(model, train_loader, device, num_class=args.num_classes,
-                                      group_size=args.knowledge_group_size, interval=args.plot_interval)
-    pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval)
+                                      group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
+    pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
 
     for epoch in range(args.epochs):
         timert._start()

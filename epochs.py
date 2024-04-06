@@ -44,7 +44,7 @@ class BaseEpoch:
                 self.loader = tqdm(enumerate(self.loaders), total=len(self.loaders))
 
             else:
-                print('\n Running {} Epoch: {}'.format(self.name, epoch))  # 打印信息移动到这里
+                print('Running {} Epoch: {}'.format(self.name, epoch))  # 打印信息移动到这里
                 self.loader = enumerate(self.loaders)  #
                 pass
 
@@ -443,6 +443,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
     assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
     # 如果特征图大小为一，则计算2中与1最相关的主成分
     if len(pca1.shape) == 2:
+        print(pca1[0])
         pca1 = pca1[0].clone() # C
         pca2 = pca2.clone() # (C, C)
 
@@ -450,8 +451,13 @@ def compute_pca_correct(pca1, pca2, fimttt):
         pca1 = pca1 / torch.norm(pca1)
         pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0, torch.ones_like(pca2))
 
+        # 标准化
+        pca1 = pca1 / torch.norm(pca1)
+        pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0,
+                                                                  torch.ones_like(pca2))
+
         # 计算相关系数
-        corr_matrix = torch.matmul(pca2.T, pca1)  # (C)
+        corr_matrix = torch.mm(pca2, pca1.view(pca1.size(0), -1))  # (C)
 
         # 找到最大相关系数
         index1 = 0
@@ -462,8 +468,8 @@ def compute_pca_correct(pca1, pca2, fimttt):
         confdt = 1 - (corr_matrix[indexmax] / corr_matrix[index1])
 
         # 打印信息检查
-        print('main_cor{}, max_cor', corr_matrix[index1].item(), corr_matrix[indexmax].item())
-        print('confdt', confdt.item())
+        print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
+        # print('confdt', confdt.item())
 
         # 取出最大相关系数对应的主成分
         pca_correct2 = pca2[indexmax]
