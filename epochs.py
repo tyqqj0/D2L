@@ -383,26 +383,47 @@ class PCACorrectEpoch(BaseEpoch):
             fimttt = FeatureMapSimilarity(method='cosine')
 
             # 计算要修正的主成分
-            pca_corrects = []
-            cl1 = 1
-            cl2 = 2
-            # 先用前两个类为例
-            class2to1, confdt = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
-            print('confdt', confdt)
-            # 获取2中与该成分对齐的样本
-            logits2 = [logits_list[cl2]['layer4'], logits_list[cl2]['image']]
-            # logits2 = logits2
-            # print(logits2.shape)
-            for i in range(logits2[0].shape[0]):
-                # print(torch.max(logits2[i]))
-                # print(class2to1.shape, logits2[i].shape)
-                simttt = compute_vec_corr(class2to1, logits2[0][i])
-                print(simttt)
-                if simttt > 0.65:
-                    pca_corrects.append(logits2[1][i].cpu())
+            layert = 'layer4'
+            main_cos = np.zeros((2, self.num_class, self.num_class))
+            for cl1 in range(1, self.num_class):
+                for cl2 in range(cl1 + 1, self.num_class):
+                    # 先用前两个类为例
+                    class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert], fimttt)
+                    print('confdt', confdt, main_cor)
+                    main_cos[0, cl1, cl2] = main_cor
+                    main_cos[1, cl1, cl2] = confdt
 
-            # 保存修正的样本图片
-            plot_images(pca_corrects, epoch, folder='pca_correct', pre='pca_correct2to1')
+                    # 获取2中与该成分对齐的样本
+                    logits2 = [logits_list[cl2][layert], logits_list[cl2]['image']]
+                    # logits2 = logits2
+                    # print(logits2.shape)
+                    for i in range(logits2[0].shape[0]):
+                        # print(torch.max(logits2[i]))
+                        # print(class2to1.shape, logits2[i].shape)
+                        simttt = compute_vec_corr(class2to1, logits2[0][i])
+                        print(simttt)
+                        # if simttt > 0.65:
+                        #     pca_corrects.append(logits2[1][i].cpu())
+            # pca_corrects = []
+            # cl1 = 1
+            # cl2 = 2
+            # # 先用前两个类为例
+            # class2to1, confdt = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
+            # print('confdt', confdt)
+            # # 获取2中与该成分对齐的样本
+            # logits2 = [logits_list[cl2]['layer4'], logits_list[cl2]['image']]
+            # # logits2 = logits2
+            # # print(logits2.shape)
+            # for i in range(logits2[0].shape[0]):
+            #     # print(torch.max(logits2[i]))
+            #     # print(class2to1.shape, logits2[i].shape)
+            #     simttt = compute_vec_corr(class2to1, logits2[0][i])
+            #     print(simttt)
+            #     if simttt > 0.65:
+            #         pca_corrects.append(logits2[1][i].cpu())
+            #
+            # # 保存修正的样本图片
+            # plot_images(pca_corrects, epoch, folder='pca_correct', pre='pca_correct2to1')
 
 
 # 从两个类别的主成分中计算要修正的成分
@@ -435,23 +456,22 @@ def compute_pca_correct(pca1, pca2, fimttt):
     # 计算要修正的成分, 找到主成分2与主成分1最大成分最相关的主成分
     corr_index = torch.matmul(pca2, pca1)  # (C)
 
-    index1 = abs(corr_index[0])  # 两个类别最大主成分的相关系数
-    indexmax = abs(torch.max(corr_index[1:]))  # 最大相关系数
+    index1 = 0  # 两个类别最大主成分的相关系数
+    indexmax = torch.argmax(corr_index[1:])  # 最大相关系数
 
     # 计算偏离置信程度
-    confdt = 1 - index1 / indexmax
-    print(index1, indexmax)
+    confdt = 1 - (corr_index[indexmax] / corr_index[index1])
+    print(index1, indexmax, corr_index[indexmax], corr_index[index1], confdt)
 
     # 找到最大的相关系数
-    max_corr_index = torch.argmax(corr_index[1:])
     # 取出最大相关系数对应的主成分
-    pca_correct2 = pca2[max_corr_index]  # (C*H*W)
+    pca_correct2 = pca2[indexmax]  # (C*H*W)
 
     # 还原形状
     pca_correct2 = pca_correct2.view(shape[1], shape[2], shape[3])  # (C, H, W)
     # print(pca_correct2.shape)
 
-    return pca_correct2, confdt
+    return pca_correct2, confdt, corr_index[0]
 
 
 # # 计算主成分2和主成分1中最大主成分的相关系数
@@ -547,44 +567,3 @@ def compute_vec_corr(vec1, vec2):
     return corr_mean.item()  # 返回标量值
 
 
-def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):
-    logits = {}  # defaultdict(torch.Tensor)
-    labels = []
-    # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
-    for label, logits_per_class in logits_list.items():
-        # 拼接每个类别的logits
-        for key, value in logits_per_class.items():
-            if label not in labels:
-                labels.extend([label] * value.shape[0])  # labels.extend([label] * value.shape[0])
-            if key in logits:
-                logits[key] = torch.cat((logits[key], value), dim=0)
-
-            else:
-                # print(key)
-                logits[key] = value
-
-                # print([label] * value.shape[0])
-    # print(logits[key].shape, len(labels))
-    with autocast():
-        plot_kn_map(logits, labels, epoch=epoch, folder=folder,
-                    pre=model_name + '_' + str(noise_ratio) + '_epoch_' + str(epoch + 1))
-
-
-# 将knowledge的字典转换为json并保存提交
-@logbox.log_artifact_autott
-def dict_to_json(dicttt, epoch, folder='knowledge_json', pre='', path=''):
-    import json
-    import os
-    file_name = pre + '_' + 'epoch_{:03d}.json'.format(epoch)
-    # 如果path不为None，则在path中创建文件夹
-    full_folder_path = os.path.join(path, folder) if path is not None else folder
-    if not os.path.exists(full_folder_path):
-        os.makedirs(full_folder_path)
-    full_file_path = full_folder_path + '/'
-    full_file_path = full_file_path + file_name
-
-    with open(full_file_path, 'w') as f:
-        # 处理格式为自动缩进
-
-        json.dump(dicttt, f)
-    return full_folder_path
