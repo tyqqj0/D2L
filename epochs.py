@@ -404,6 +404,9 @@ class PCACorrectEpoch(BaseEpoch):
                     #     print(simttt)
                         # if simttt > 0.65:
                         #     pca_corrects.append(logits2[1][i].cpu())
+            # 打印 保留两位小数
+            # np.set_printoptions(precision=2)
+
             np.set_printoptions(precision=2)
             print(main_cos[0])
             print(main_cos[1])
@@ -436,6 +439,29 @@ def compute_pca_correct(pca1, pca2, fimttt):
     :param pca1: 类别1的主成分 (C, C, H, W)
     :param pca2: 类别2的主成分 (C, C, H, W)
     '''
+    assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
+    # 如果特征图大小为一，则计算2中与1最相关的主成分
+    if len(pca1.shape) == 2:
+        pca1 = pca1[0].clone() # C
+        pca2 = pca2.clone() # (C, C)
+
+        # 计算相关系数
+        corr_matrix = torch.matmul(pca2, pca1)  # (C)
+
+        # 找到最大相关系数
+        index1 = 0
+        indexmax = torch.argmax(corr_matrix[1:])
+        print(index1, indexmax, corr_matrix[index1], corr_matrix[indexmax])
+
+        # 计算偏离置信程度
+        confdt = 1 - (corr_matrix[indexmax] / corr_matrix[index1])
+
+        # 取出最大相关系数对应的主成分
+        pca_correct2 = pca2[indexmax]
+
+        return pca_correct2, confdt, corr_matrix[index1]
+
+
     # 复制值
     pca1 = pca1.clone()
     pca2 = pca2.clone()
