@@ -27,7 +27,7 @@ class EpochTimer:
         return t, speed_pm, speed_ph
 
     def __str__(self):
-        return f'Using {self._end()[0]}, speed: {self._end()[1]:.2f}m, {self._end()[2]:.2f}h'
+        return f'Using {self._end()[0]}s, speed: {self._end()[1]:.2f}epochs/m, {self._end()[2]:.2f}epochs/h'
 
 class Timer:
     def __init__(self, name):

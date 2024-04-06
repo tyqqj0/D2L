@@ -14,7 +14,7 @@ all = ['--amp',
        # '--exp_name', 'noisy_test'
        # 'run_name', '1',
        '--exp_name', 'n8',
-       '--group_size', '15'
+       '--group_size', '65'
                        '--model', 'resnet50'
        ]
 

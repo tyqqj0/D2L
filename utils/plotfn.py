@@ -285,7 +285,7 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
 
 
     # 选取前max_samples个图像
-    idx = np.random.choice(len(images), max_samples, replace=False)
+    idx = np.random.choice(len(images), min(len(images), max_samples), replace=False)
     # print(data.shape)
     images = np.transpose(images, (0, 2, 3, 1))[idx]
 
