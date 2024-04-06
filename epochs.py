@@ -384,27 +384,35 @@ class PCACorrectEpoch(BaseEpoch):
 
             # 计算要修正的主成分
             layert = 'layer4'
+            pca_corrects = {}
             main_cos = np.zeros((2, self.num_class, self.num_class))
             for cl1 in range(0, self.num_class):
+                pca_corrects[cl1] = {}
                 for cl2 in range(0, self.num_class):
+                    if cl1 == cl2:
+                        continue
+                    pca_corrects[cl1][cl2] = []
                     # 先用前两个类为例
                     print('cl1, cl2', cl1, cl2)
-                    class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert], fimttt)
+                    class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert],
+                                                                      fimttt)
                     print('confdt', confdt.item())
                     main_cos[0, cl1, cl2] = main_cor
                     main_cos[1, cl1, cl2] = confdt
 
+                    if confdt <= 0.5:
+                        continue
                     # 获取2中与该成分对齐的样本
                     logits2 = [logits_list[cl2][layert], logits_list[cl2]['image']]
                     # logits2 = logits2
                     # print(logits2.shape)
-                    # for i in range(logits2[0].shape[0]):
-                    #     # print(torch.max(logits2[i]))
-                    #     # print(class2to1.shape, logits2[i].shape)
-                    #     simttt = compute_vec_corr(class2to1, logits2[0][i])
-                    #     print(simttt)
-                        # if simttt > 0.65:
-                        #     pca_corrects.append(logits2[1][i].cpu())
+                    for i in range(logits2[0].shape[0]):
+                        #     # print(torch.max(logits2[i]))
+                        #     # print(class2to1.shape, logits2[i].shape)
+                        simttt = compute_vec_corr(class2to1, logits2[0][i])
+                        print(simttt)
+                        if simttt > 0.65:
+                            pca_corrects[cl1][cl2].append(logits2[1][i].cpu())  # 应归为cl1的样本
             # 打印 保留两位小数
             # np.set_printoptions(precision=2)
 
@@ -446,12 +454,13 @@ def compute_pca_correct(pca1, pca2, fimttt):
     # 如果特征图大小为一，则计算2中与1最相关的主成分
     if len(pca1.shape) == 2:
         # print(pca1[0])
-        pca1 = pca1[0].clone() # C
-        pca2 = pca2.clone() # (C, C)
+        pca1 = pca1[0].clone()  # C
+        pca2 = pca2.clone()  # (C, C)
 
         # 标准化
         pca1 = pca1 / torch.norm(pca1)
-        pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0, torch.ones_like(pca2))
+        pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0,
+                                                                  torch.ones_like(pca2))
 
         # 标准化
         pca1 = pca1 / torch.norm(pca1)
@@ -464,7 +473,6 @@ def compute_pca_correct(pca1, pca2, fimttt):
         # 找到最大相关系数
         index1 = 0
         indexmax = torch.argmax(corr_matrix[1:])
-
 
         # 计算偏离置信程度
         confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
@@ -479,7 +487,6 @@ def compute_pca_correct(pca1, pca2, fimttt):
         pca_correct2 = pca2[indexmax]
 
         return pca_correct2, confdt, corr_matrix[index1]
-
 
     # 复制值
     pca1 = pca1.clone()
@@ -509,7 +516,6 @@ def compute_pca_correct(pca1, pca2, fimttt):
 
     # 计算偏离置信程度
     confdt = 1 - (corr_index[indexmax] / corr_index[index1])
-
 
     # 找到最大的相关系数
     # 取出最大相关系数对应的主成分

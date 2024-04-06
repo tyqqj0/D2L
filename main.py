@@ -49,7 +49,8 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                                 interval=args.plot_interval)
     ne_compute_epoch = NEComputeEpoch(model, train_loader, device, num_class=args.num_classes,
                                       group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
-    pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes, group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
+    pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes,
+                                        group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
 
     for epoch in range(args.epochs):
         timert._start()
@@ -87,7 +88,6 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
-
             # print('knowledge:', knowes)
             print('ne:', ne_dict)
             # logbox.log_metrics('knowledge', knowes, step=epoch + 1)
