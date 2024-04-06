@@ -385,7 +385,7 @@ class PCACorrectEpoch(BaseEpoch):
             # 计算要修正的主成分
             layert = 'layer4'
             pca_corrects = {}
-            main_cos = np.zeros((2, self.num_class, self.num_class))
+            max_cos = np.zeros((2, self.num_class, self.num_class))
             for cl1 in range(0, self.num_class):
                 pca_corrects[cl1] = {}
                 for cl2 in range(0, self.num_class):
@@ -393,12 +393,12 @@ class PCACorrectEpoch(BaseEpoch):
                         continue
                     pca_corrects[cl1][cl2] = []
                     # 先用前两个类为例
-                    print('cl1, cl2', cl1, cl2)
-                    class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert],
+                    # print('cl1, cl2', cl1, cl2)
+                    class2to1, confdt, max_cor = compute_pca_correct(pca_dict[cl1][layert], pca_dict[cl2][layert],
                                                                       fimttt)
-                    print('confdt', confdt.item())
-                    main_cos[0, cl1, cl2] = main_cor
-                    main_cos[1, cl1, cl2] = confdt
+                    # print('confdt', confdt)
+                    max_cos[0, cl1, cl2] = max_cor
+                    max_cos[1, cl1, cl2] = confdt
 
                     if confdt <= 0.5:
                         continue
@@ -409,38 +409,28 @@ class PCACorrectEpoch(BaseEpoch):
                     for i in range(logits2[0].shape[0]):
                         #     # print(torch.max(logits2[i]))
                         #     # print(class2to1.shape, logits2[i].shape)
-                        simttt = compute_vec_corr(class2to1, logits2[0][i])
-                        print(simttt)
-                        if simttt > 0.65:
+                        simttt = compute_vec_corr(class2to1, logits2[0][i].view(logits2[0][i].shape[0]))
+                        # print(simttt)
+                        if abs(simttt * confdt * 100) > 0.65:
                             pca_corrects[cl1][cl2].append(logits2[1][i].cpu())  # 应归为cl1的样本
             # 打印 保留两位小数
             # np.set_printoptions(precision=2)
 
             np.set_printoptions(precision=2)
-            print(np.array2string(main_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
-            print(np.array2string(main_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
-            # print(main_cos[0])
-            # print(main_cos[1]) # (
-            # pca_corrects = []
-            # cl1 = 1
-            # cl2 = 2
-            # # 先用前两个类为例
-            # class2to1, confdt = compute_pca_correct(pca_dict[cl2]['layer4'], pca_dict[cl1]['layer4'], fimttt)
-            # print('confdt', confdt)
-            # # 获取2中与该成分对齐的样本
-            # logits2 = [logits_list[cl2]['layer4'], logits_list[cl2]['image']]
-            # # logits2 = logits2
-            # # print(logits2.shape)
-            # for i in range(logits2[0].shape[0]):
-            #     # print(torch.max(logits2[i]))
-            #     # print(class2to1.shape, logits2[i].shape)
-            #     simttt = compute_vec_corr(class2to1, logits2[0][i])
-            #     print(simttt)
-            #     if simttt > 0.65:
-            #         pca_corrects.append(logits2[1][i].cpu())
-            #
-            # # 保存修正的样本图片
-            # plot_images(pca_corrects, epoch, folder='pca_correct', pre='pca_correct2to1')
+            print(np.array2string(max_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
+            print(np.array2string(max_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
+
+            # 保存类2中实际标签为1的样本图片
+            # 找到一个置信度最高的
+            for cl1 in range(0, self.num_class):
+                for cl2 in range(0, self.num_class):
+                    if cl1 == cl2:
+                        continue
+                    if len(pca_corrects[cl1][cl2]) > 0:
+                        plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct', pre=f'pca_correct{cl2}to{cl1}')
+                        # return
+            # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
+            # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
 
 
 # 从两个类别的主成分中计算要修正的成分
@@ -478,9 +468,11 @@ def compute_pca_correct(pca1, pca2, fimttt):
         confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
         if confdt < 0:
             confdt = 0
+        else:
+            confdt = confdt.item()
 
         # 打印信息检查
-        print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
+        # print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
         # print('confdt', confdt.item())
 
         # 取出最大相关系数对应的主成分
@@ -525,7 +517,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
     pca_correct2 = pca_correct2.view(shape[1], shape[2], shape[3])  # (C, H, W)
     # print(pca_correct2.shape)
 
-    return pca_correct2, confdt, corr_index[0]
+    return pca_correct2, confdt, corr_index[indexmax]
 
 
 # # 计算主成分2和主成分1中最大主成分的相关系数
@@ -578,7 +570,7 @@ def compute_vec_corr(vec1, vec2):
     # 复制值
     vec1 = vec1.clone()
     vec2 = vec2.clone()
-    assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same.'
+    assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same. {}, {}'.format(vec1.shape, vec2.shape)
     # print(vec1[1], vec2[1])
 
     # 如果传入的是向量C

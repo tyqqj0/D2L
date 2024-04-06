@@ -269,9 +269,16 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
         os.makedirs(path + folder)
     full_file_path = os.path.join(path, folder, file_name)
     # 转换 images 到 NumPy 数组
-    if isinstance(images, list) or isinstance(images, torch.Tensor):
-        print(images[0].shape)
-        images = np.array(images)
+    if isinstance(images, list):
+        # 如果是列表，确保所有元素形状一致
+        if all(image.shape == images[0].shape for image in images):
+            # 可以安全地转换为 NumPy 数组
+            images = np.stack(images)
+        else:
+            raise ValueError("All elements in the images list must have the same shape.")
+    elif isinstance(images, torch.Tensor):
+        # 如果是 PyTorch 张量，直接转换为 NumPy 数组
+        images = images.numpy()
     if images.ndim == 4:  # 如果 images 是四维张量 (batch_size, C, H, W)
         images = images.transpose((0, 2, 3, 1))
 
@@ -289,7 +296,7 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
     # print('replace label:', replace_label)
     for i in range(len(images)):
         plt.subplot(1, 6, i + 1)
-        plt.imshow(scale_image(images[i]), cmap='gray', interpolation='none')
+        plt.imshow(scale_image(images[i].squeeze()), cmap='gray', interpolation='none')
         # plt.title(
         #     f'{label_of_cifar10[labels[i]] if replace_label else labels[i]}')
         plt.axis('off')
