@@ -427,7 +427,7 @@ class PCACorrectEpoch(BaseEpoch):
                     if cl1 == cl2:
                         continue
                     if len(pca_corrects[cl1][cl2]) > 0:
-                        plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct', pre=f'pca_correct{cl2}to{cl1}')
+                        plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct_{}'.format(epoch), pre=f'pca_correct_{cl2}to{cl1}')
                         # return
             # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
             # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
