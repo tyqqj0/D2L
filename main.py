@@ -54,9 +54,11 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
     for epoch in range(args.epochs):
         timert._start()
-        print('\n')
+
         if stop_count > 5 and epoch < args.epochs - 1:
             continue
+
+        print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
         train_loss, train_accuracy = train_epoch.run(epoch + 1)
         val_loss, val_accuracy = val_epoch.run(epoch + 1)
