@@ -389,7 +389,7 @@ class PCACorrectEpoch(BaseEpoch):
                 for cl2 in range(0, self.num_class):
                     # 先用前两个类为例
                     class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert], fimttt)
-                    print('confdt', confdt, main_cor)
+                    print('confdt', confdt.item(), main_cor.item())
                     main_cos[0, cl1, cl2] = main_cor
                     main_cos[1, cl1, cl2] = confdt
 
@@ -446,12 +446,12 @@ def compute_pca_correct(pca1, pca2, fimttt):
         pca2 = pca2.clone() # (C, C)
 
         # 计算相关系数
-        corr_matrix = torch.matmul(pca2, pca1)  # (C)
+        corr_matrix = torch.matmul(pca2.T, pca1)  # (C)
 
         # 找到最大相关系数
         index1 = 0
         indexmax = torch.argmax(corr_matrix[1:])
-        print(index1, indexmax, corr_matrix[index1], corr_matrix[indexmax])
+        print(index1, indexmax.item(), corr_matrix[index1].item(), corr_matrix[indexmax].item())
 
         # 计算偏离置信程度
         confdt = 1 - (corr_matrix[indexmax] / corr_matrix[index1])

@@ -260,7 +260,7 @@ def compute_knowledge(feature_maps, method='cosine', normalize=True):
 
     # 如果特征图大小为一，则返回特征值和特征向量
     if feature_maps.size(2) == 1 and feature_maps.size(3) == 1:
-        return eigenvalues, eigenvectors
+        return eigenvalues, eigenvectors.T
 
     # 计算原矩阵的特征图向量, 求group_size的特征图的平均特征图
     feature = torch.mean(feature_maps, dim=0)  # (C, H, W)
