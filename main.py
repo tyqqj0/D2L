@@ -15,13 +15,13 @@ from torch.cuda.amp import GradScaler
 
 import utils.arg.parser
 from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, PCACorrectEpoch, \
-    BaseEpoch
+    BaseEpoch, plot_kmp
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
 from utils.BOX import logbox
 from utils.data import load_data
-from utils.plotfn import plot_layers_seaborn, plot_kmp, dict_to_json
+from utils.plotfn import plot_layers_seaborn, dict_to_json
 from utils.text import text_in_box
 
 plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)

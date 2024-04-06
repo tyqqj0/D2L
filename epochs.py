@@ -385,8 +385,8 @@ class PCACorrectEpoch(BaseEpoch):
             # 计算要修正的主成分
             layert = 'layer4'
             main_cos = np.zeros((2, self.num_class, self.num_class))
-            for cl1 in range(1, self.num_class):
-                for cl2 in range(cl1 + 1, self.num_class):
+            for cl1 in range(0, self.num_class):
+                for cl2 in range(0, self.num_class):
                     # 先用前两个类为例
                     class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert], fimttt)
                     print('confdt', confdt, main_cor)
@@ -397,13 +397,16 @@ class PCACorrectEpoch(BaseEpoch):
                     logits2 = [logits_list[cl2][layert], logits_list[cl2]['image']]
                     # logits2 = logits2
                     # print(logits2.shape)
-                    for i in range(logits2[0].shape[0]):
-                        # print(torch.max(logits2[i]))
-                        # print(class2to1.shape, logits2[i].shape)
-                        simttt = compute_vec_corr(class2to1, logits2[0][i])
-                        print(simttt)
+                    # for i in range(logits2[0].shape[0]):
+                    #     # print(torch.max(logits2[i]))
+                    #     # print(class2to1.shape, logits2[i].shape)
+                    #     simttt = compute_vec_corr(class2to1, logits2[0][i])
+                    #     print(simttt)
                         # if simttt > 0.65:
                         #     pca_corrects.append(logits2[1][i].cpu())
+            np.set_printoptions(precision=2)
+            print(main_cos[0])
+            print(main_cos[1])
             # pca_corrects = []
             # cl1 = 1
             # cl2 = 2
@@ -567,3 +570,24 @@ def compute_vec_corr(vec1, vec2):
     return corr_mean.item()  # 返回标量值
 
 
+def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):
+    logits = {}  # defaultdict(torch.Tensor)
+    labels = []
+    # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
+    for label, logits_per_class in logits_list.items():
+        # 拼接每个类别的logits
+        for key, value in logits_per_class.items():
+            if label not in labels:
+                labels.extend([label] * value.shape[0])  # labels.extend([label] * value.shape[0])
+            if key in logits:
+                logits[key] = torch.cat((logits[key], value), dim=0)
+
+            else:
+                # print(key)
+                logits[key] = value
+
+                # print([label] * value.shape[0])
+    # print(logits[key].shape, len(labels))
+    with autocast():
+        plot_kn_map(logits, labels, epoch=epoch, folder=folder,
+                    pre=model_name + '_' + str(noise_ratio) + '_epoch_' + str(epoch + 1))

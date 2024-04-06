@@ -14,10 +14,6 @@ import pandas as pd
 import seaborn as sns
 import torch
 from sklearn.manifold import TSNE
-from torch.cuda.amp import autocast
-
-from epochs import plot_kn_map
-
 
 
 def plot_lid_plt(lidss, epoch, y_lim=None, folder='', pre='', path=None):
@@ -304,29 +300,6 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
     plt.close()
 
     return os.path.join(path, folder)
-
-
-def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):
-    logits = {}  # defaultdict(torch.Tensor)
-    labels = []
-    # logits_list:{label: {layer_name: data_tensor_of_group_size_logits}
-    for label, logits_per_class in logits_list.items():
-        # 拼接每个类别的logits
-        for key, value in logits_per_class.items():
-            if label not in labels:
-                labels.extend([label] * value.shape[0])  # labels.extend([label] * value.shape[0])
-            if key in logits:
-                logits[key] = torch.cat((logits[key], value), dim=0)
-
-            else:
-                # print(key)
-                logits[key] = value
-
-                # print([label] * value.shape[0])
-    # print(logits[key].shape, len(labels))
-    with autocast():
-        plot_kn_map(logits, labels, epoch=epoch, folder=folder,
-                    pre=model_name + '_' + str(noise_ratio) + '_epoch_' + str(epoch + 1))
 
 
 # 将knowledge的字典转换为json并保存提交
