@@ -388,8 +388,9 @@ class PCACorrectEpoch(BaseEpoch):
             for cl1 in range(0, self.num_class):
                 for cl2 in range(0, self.num_class):
                     # 先用前两个类为例
+                    print('cl1, cl2', cl1, cl2)
                     class2to1, confdt, main_cor = compute_pca_correct(pca_dict[cl2][layert], pca_dict[cl1][layert], fimttt)
-                    print('confdt', confdt.item(), main_cor.item())
+                    print('confdt', confdt.item())
                     main_cos[0, cl1, cl2] = main_cor
                     main_cos[1, cl1, cl2] = confdt
 
@@ -451,10 +452,14 @@ def compute_pca_correct(pca1, pca2, fimttt):
         # 找到最大相关系数
         index1 = 0
         indexmax = torch.argmax(corr_matrix[1:])
-        print(index1, indexmax.item(), corr_matrix[index1].item(), corr_matrix[indexmax].item())
+
 
         # 计算偏离置信程度
         confdt = 1 - (corr_matrix[indexmax] / corr_matrix[index1])
+
+        # 打印信息检查
+        print('main_cor{}, max_cor', corr_matrix[index1].item(), corr_matrix[indexmax].item())
+        print('confdt', confdt.item())
 
         # 取出最大相关系数对应的主成分
         pca_correct2 = pca2[indexmax]
@@ -490,7 +495,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
 
     # 计算偏离置信程度
     confdt = 1 - (corr_index[indexmax] / corr_index[index1])
-    print(index1, indexmax, corr_index[indexmax], corr_index[index1], confdt)
+
 
     # 找到最大的相关系数
     # 取出最大相关系数对应的主成分
