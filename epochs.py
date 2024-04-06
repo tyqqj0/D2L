@@ -409,8 +409,10 @@ class PCACorrectEpoch(BaseEpoch):
             # np.set_printoptions(precision=2)
 
             np.set_printoptions(precision=2)
-            print(main_cos[0])
-            print(main_cos[1])
+            print(np.array2string(main_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
+            print(np.array2string(main_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
+            # print(main_cos[0])
+            # print(main_cos[1]) # (
             # pca_corrects = []
             # cl1 = 1
             # cl2 = 2
@@ -466,6 +468,8 @@ def compute_pca_correct(pca1, pca2, fimttt):
 
         # 计算偏离置信程度
         confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
+        if confdt < 0:
+            confdt = 0
 
         # 打印信息检查
         print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
