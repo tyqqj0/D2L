@@ -454,44 +454,44 @@ def compute_pca_correct(pca1, pca2, fimttt):
     return pca_correct2, confdt
 
 
-# 计算主成分2和主成分1中最大主成分的相关系数
-def compute_pca_corrcl(pca1, pca2, fimttt):
-    '''
-    计算两个主成分的相关系数矩阵
-    :param pca1: 主成分1 (C, C, H, W) (取0, C, H, W)
-    :param pca2: 主成分2 (C, C, H, W)
-    '''
-
-    assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
-
-    # 计算相关系数矩阵
-    corr_matrix = np.zeros(pca2.shape[0])
-    i = 0
-    for j in range(i, pca2.shape[0]):
-        corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
-        corr_matrix[j, i] = corr_matrix[i, j]
-
-    return corr_matrix
-
-
-# 计算两个主成分的相关系数矩阵
-def compute_pca_corr(pca1, pca2):
-    '''
-    计算两个主成分的相关系数矩阵
-    :param pca1: 主成分1 (C, C, H, W)
-    :param pca2: 主成分2 (C, C, H, W)
-    '''
-
-    assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
-
-    # 计算相关系数矩阵
-    corr_matrix = np.zeros((pca1.shape[0], pca2.shape[0]))
-    for i in range(pca1.shape[0]):
-        for j in range(i, pca2.shape[0]):
-            corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
-            corr_matrix[j, i] = corr_matrix[i, j]
-
-    return corr_matrix
+# # 计算主成分2和主成分1中最大主成分的相关系数
+# def compute_pca_corrcl(pca1, pca2, fimttt):
+#     '''
+#     计算两个主成分的相关系数矩阵
+#     :param pca1: 主成分1 (C, C, H, W) (取0, C, H, W)
+#     :param pca2: 主成分2 (C, C, H, W)
+#     '''
+#
+#     assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
+#
+#     # 计算相关系数矩阵
+#     corr_matrix = np.zeros(pca2.shape[0])
+#     i = 0
+#     for j in range(i, pca2.shape[0]):
+#         corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
+#         corr_matrix[j, i] = corr_matrix[i, j]
+#
+#     return corr_matrix
+#
+#
+# # 计算两个主成分的相关系数矩阵
+# def compute_pca_corr(pca1, pca2):
+#     '''
+#     计算两个主成分的相关系数矩阵
+#     :param pca1: 主成分1 (C, C, H, W)
+#     :param pca2: 主成分2 (C, C, H, W)
+#     '''
+#
+#     assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
+#
+#     # 计算相关系数矩阵
+#     corr_matrix = np.zeros((pca1.shape[0], pca2.shape[0]))
+#     for i in range(pca1.shape[0]):
+#         for j in range(i, pca2.shape[0]):
+#             corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
+#             corr_matrix[j, i] = corr_matrix[i, j]
+#
+#     return corr_matrix
 
 
 def compute_vec_corr(vec1, vec2):

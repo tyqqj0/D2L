@@ -270,6 +270,7 @@ def plot_images(images, epoch, folder='', pre='', path=None, max_samples=3, repl
     full_file_path = os.path.join(path, folder, file_name)
     # 转换 images 到 NumPy 数组
     if isinstance(images, list) or isinstance(images, torch.Tensor):
+        print(images[0].shape)
         images = np.array(images)
     if images.ndim == 4:  # 如果 images 是四维张量 (batch_size, C, H, W)
         images = images.transpose((0, 2, 3, 1))
