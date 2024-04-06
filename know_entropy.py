@@ -201,13 +201,15 @@ def inner_product_matrix(feature_maps, method=None):
 
 
 # 计算数据特征知识
-def compute_knowledge(feature_maps, method='cosine'):
+def compute_knowledge(feature_maps, method='cosine', normalize=True):
     """
         计算一组数据特征知识
         :param feature_maps: 特征图列表 (group_size, C, H, W)
         :param method: 相似度计算方法
         :return: 特征值矩阵， 特征向量矩阵(每个特征向量: (C, H, W))
         """
+    if normalize:
+        feature_maps = torch.nn.functional.normalize(feature_maps, p=2, dim=(2, 3))
     if method == 'dot' or len(feature_maps.shape) == 2:
         # 将特征图张量转换为矩阵
         # print(feature_maps.shape[1])

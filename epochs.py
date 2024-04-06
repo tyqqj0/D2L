@@ -45,6 +45,7 @@ class BaseEpoch:
 
             else:
                 print('\n Running {} Epoch: {}'.format(self.name, epoch))  # 打印信息移动到这里
+                self.loader = enumerate(self.loaders)  #
                 pass
 
             if len(self.loaders) == 0:  # 注意这里应该是 self.loaders 而不是 self.loader
