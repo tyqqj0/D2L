@@ -417,8 +417,8 @@ class PCACorrectEpoch(BaseEpoch):
             # np.set_printoptions(precision=2)
 
             np.set_printoptions(precision=2)
-            print(np.array2string(max_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
-            print(np.array2string(max_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
+            print(np.array2string(main_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
+            print(np.array2string(main_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
 
             # 保存类2中实际标签为1的样本图片
             # 找到一个置信度最高的
@@ -429,7 +429,6 @@ class PCACorrectEpoch(BaseEpoch):
                     if len(pca_corrects[cl1][cl2]) > 0:
                         plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct_{}'.format(epoch), pre=f'pca_correct_{cl2}to{cl1}')
                         # return
-            # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
             # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
 
 
@@ -464,12 +463,16 @@ def compute_pca_correct(pca1, pca2, fimttt):
         index1 = 0
         indexmax = torch.argmax(corr_matrix[1:])
 
-        # 计算偏离置信程度
-        confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
-        if confdt < 0:
+        # 如果最大相关系数小于主要相关系数，confdt会小于0
+        if abs(corr_matrix[index1]) > abs(corr_matrix[indexmax]):
             confdt = 0
         else:
-            confdt = confdt.item()
+            # 计算偏离置信程度
+            confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
+            if confdt < 0:
+                confdt = 0
+            else:
+                confdt = confdt.item()
 
         # 打印信息检查
         # print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
