@@ -443,7 +443,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
     assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
     # 如果特征图大小为一，则计算2中与1最相关的主成分
     if len(pca1.shape) == 2:
-        print(pca1[0])
+        # print(pca1[0])
         pca1 = pca1[0].clone() # C
         pca2 = pca2.clone() # (C, C)
 
@@ -465,7 +465,7 @@ def compute_pca_correct(pca1, pca2, fimttt):
 
 
         # 计算偏离置信程度
-        confdt = 1 - (corr_matrix[indexmax] / corr_matrix[index1])
+        confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
 
         # 打印信息检查
         print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
