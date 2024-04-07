@@ -144,6 +144,8 @@ class box:
         mlflow.log_metric(key, value, step if step else self.epoch + 1)
 
     def log_metrics(self, stage, metrics=None, pre='', step=None, **kwargs):
+        if metrics is None:
+            return
         if not isinstance(metrics, dict):
             if metrics is not None:
                 raise ValueError('metrics should be dict')

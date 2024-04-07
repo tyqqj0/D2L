@@ -60,11 +60,12 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
 
         print('\n')
         print(text_in_box('Epoch: %d/%d' % (epoch + 1, args.epochs)))
+        ne_dict = None
         train_loss, train_accuracy = train_epoch.run(epoch + 1)
         val_loss, val_accuracy = val_epoch.run(epoch + 1)
         # knowes, logits_list = lid_compute_epoch.run(epoch + 1)
         # expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
-        ne_dict = ne_compute_epoch.run(epoch + 1)
+        # ne_dict = ne_compute_epoch.run(epoch + 1)
         pca_compute_epoch.run(epoch + 1)
 
         # if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
@@ -91,7 +92,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # mlflow记录图像
         if ((epoch + 1) % args.plot_interval == 0 or epoch + 1 == args.epochs) and args.plot_interval != -1:
             # print('knowledge:', knowes)
-            print('ne:', ne_dict)
+            # print('ne:', ne_dict)
             # logbox.log_metrics('knowledge', knowes, step=epoch + 1)
             logbox.log_metrics('ne', ne_dict, step=epoch + 1)
 

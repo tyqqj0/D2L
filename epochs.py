@@ -407,18 +407,18 @@ class PCACorrectEpoch(BaseEpoch):
                     # logits2 = logits2
                     # print(logits2.shape)
                     for i in range(logits2[0].shape[0]):
-                        #     # print(torch.max(logits2[i]))
+                            # print(torch.max(logits2[i]))
                         #     # print(class2to1.shape, logits2[i].shape)
                         simttt = compute_vec_corr(class2to1, logits2[0][i].view(logits2[0][i].shape[0]))
-                        # print(simttt)
+                        print(simttt)
                         if abs(simttt * confdt * 100) > 0.65:
-                            pca_corrects[cl1][cl2].append(logits2[1][i].cpu())  # 应归为cl1的样本
+                            pca_corrects[cl1][cl2].append(logits2[1][i].cpu().view(logits2[1][i].shape[0], -1))  # 应归为cl1的样本
             # 打印 保留两位小数
             # np.set_printoptions(precision=2)
 
             np.set_printoptions(precision=2)
-            print(np.array2string(main_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
-            print(np.array2string(main_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
+            print(np.array2string(max_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
+            print(np.array2string(max_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
 
             # 保存类2中实际标签为1的样本图片
             # 找到一个置信度最高的

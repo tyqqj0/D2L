@@ -10,12 +10,12 @@
 import subprocess
 
 all = ['--amp',
-       'run_name', 'show_ne',
+       '--run_name', 'show_ne',
        # '--exp_name', 'noisy_test'
        # 'run_name', '1',
        '--exp_name', 'n8',
-       '--group_size', '65'
-                       '--model', 'resnet50'
+       '--group_size', '200',
+       '--model', 'resnet50'
        ]
 
 parameters = [
