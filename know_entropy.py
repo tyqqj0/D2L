@@ -315,3 +315,24 @@ def knowledge_entropy(feature_maps, method='cosine'):
 
     # 将结果转换为标量，如果需要的话
     return entropy.item()
+
+
+def data_sim(feature_maps, method='cosine'):
+    """
+    计算一组数据特征图的知识熵
+    :param feature_maps: 特征图列表 (group_size, C, H, W)
+    :param method: 相似度计算方法
+    :return: 知识熵
+    """
+    # 假设 compute_knowledge 是一个返回特征值的函数，并且这些特征值已经在 [0, 1] 范围内归一化
+    eigenvalues, _ = compute_knowledge(feature_maps, method)
+
+    # 选择大于0的特征值
+    valid_eigenvalues = eigenvalues[eigenvalues > 0]
+
+    # 计算熵，忽略零特征值
+    # 使用 PyTorch 的 log 函数和乘法
+    entropy = -torch.sum(valid_eigenvalues * torch.log2(valid_eigenvalues))
+
+    # 将结果转换为标量，如果需要的话
+    return entropy.item()

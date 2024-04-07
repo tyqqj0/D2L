@@ -323,6 +323,8 @@ class NEComputeEpoch(BaseEpoch):
         for label, logits_per_class in tqdm(logits_list.items(), desc='Computing knowledge entropy'):
             for key, value in logits_per_class.items():
                 # print(value.shape)
+                # 将(n, C, h, w)的数据转换为C, n, h, w的
+                value = value.permute(1, 0, 2, 3)
                 ne_dict[key].append(knowledge_entropy(value))
             # ne_dict[key] = np.mean(ne_dict[key])
 
