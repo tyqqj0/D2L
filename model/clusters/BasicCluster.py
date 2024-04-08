@@ -6,14 +6,11 @@
 # @Aim
 import os
 
-import numpy as np
-import torch
-from torch.utils import data
-from torch import nn
-import sklearn
-
 # import os
 import matplotlib.pyplot as plt
+import sklearn
+from sklearn.mixture import GaussianMixture
+import torch
 
 # import pandas as pd
 # import torchvision
@@ -57,8 +54,11 @@ class BasicCluster:
 
     def fit(self, x):
         # x(n, M)
+        print(x.shape)
         self.num_features = x.shape[1]
         if isinstance(x, torch.Tensor):
+            if len(x.shape) == 4:
+                x = x.view(x.shape[0], -1)
             self.device = x.device
             x = x.cpu().detach().numpy()
         self.model.fit(x)
@@ -147,5 +147,5 @@ class Birch(BasicCluster):
 
 class GMM(BasicCluster):
     def __init__(self, num_features=None, device=0, n_clusters=10):
-        model = sklearn.mixture.GaussianMixture(n_components=n_clusters)
+        model = GaussianMixture(n_components=n_clusters)
         super(GMM, self).__init__(model, num_features)

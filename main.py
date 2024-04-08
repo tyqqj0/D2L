@@ -55,7 +55,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                         group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
     cluster_backward_epoch = ClusterBackwardEpoch(model, train_loader, args.cluster_model, device,
                                                   num_class=args.num_classes,
-                                                  group_size=args.knowledge_group_size, interval=args.plot_interval)
+                                                  group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
 
     for epoch in range(args.epochs):
         timert._start()
@@ -71,7 +71,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # knowes, logits_list = lid_compute_epoch.run(epoch + 1)
         # expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         # ne_dict = ne_compute_epoch.run(epoch + 1)
-        pca_compute_epoch.run(epoch + 1)
+        # pca_compute_epoch.run(epoch + 1)
         cluster_backward_epoch.run(epoch + 1)
 
         # if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
@@ -107,7 +107,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
             #                pre=args.model + '_' + str(args.noise_ratio))
 
             # 绘制ne图像
-            plot_layer_all(ne_dict, epoch + 1, y_lim=6, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
+            # plot_layer_all(ne_dict, epoch + 1, y_lim=6, folder='ne', pre=args.model + '_' + str(args.noise_ratio))
 
             # 保存knows参数文件数
             # dict_to_json(knowes.update(

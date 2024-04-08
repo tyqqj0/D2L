@@ -561,7 +561,9 @@ class ClusterBackwardEpoch(BaseEpoch):
             return {'null': 0}
         self.model.eval()
         # 获取各层的logits
-        logits_list = {}
+        # logits_list = defaultdict(lambda: defaultdict(torch.tensor))
+        # class_counts = [0] * self.num_class
+        logits_list = defaultdict(torch.tensor)
         class_counts = [0] * self.num_class
         with torch.no_grad():
             for batch_idx, (inputs, targets) in self.loader:
@@ -570,15 +572,15 @@ class ClusterBackwardEpoch(BaseEpoch):
                     targets = torch.argmax(targets, dim=1)
 
                 outputs, logits = self.model(inputs)
-                logits['label'] = targets  # TODO
+                # logits['label'] = targets  # TODO
+                logits['label'] = targets.unsqueeze(1)
 
                 for idx, target in enumerate(targets):
                     label = target.item()
                     if class_counts[label] < self.group_size:
                         for layer, value in logits.items():
-                            if layer in logits_list[label]:
-                                logits_list[layer] = torch.cat((logits_list[label][layer], value[idx].unsqueeze(0)),
-                                                               dim=0)
+                            if layer in logits_list:
+                                logits_list[layer] = torch.cat((logits_list[layer], value[idx].unsqueeze(0)), dim=0)
                             else:
                                 logits_list[layer] = value[idx].unsqueeze(0)
                         class_counts[label] += 1
@@ -593,11 +595,12 @@ class ClusterBackwardEpoch(BaseEpoch):
             layer = self.layers[i - 1]
             next_layer = self.layers[i]
             print(layer, next_layer)
+            # print(logits_list[next_layer].shape)
             # 对最后一层聚类
             cluster_labels_next = self.cluster_model.fit(logits_list[next_layer])
 
             # 计算获取了几个类, 用unique去重
-            next_layer_classes = np.unique(cluster_labels_next)
+            next_layer_classes = torch.unique(cluster_labels_next)
 
             # 打印各获取了几个类
             print('cluster_labels_next:', len(next_layer_classes))
@@ -611,7 +614,7 @@ class ClusterBackwardEpoch(BaseEpoch):
                 # 对上一层聚类
                 cluster_labels_this = self.cluster_model.fit(logits_list_this)
                 # 计算获取了几个类, 用unique去重
-                classes = np.unique(cluster_labels_this)
+                classes = torch.unique(cluster_labels_this)
                 # 打印各获取了几个类
                 print('cluster_labels_this:', len(classes))
 
