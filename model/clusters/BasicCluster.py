@@ -41,6 +41,10 @@ class BasicCluster:
         self.fitted = False
         self.cluster_result = None
 
+    def __str__(self):
+        # 返回模型名称
+        return self.model.__class__.__name__
+
     def predict(self, x):
         if not self.fitted:
             raise ValueError('Model not fitted yet')
@@ -54,7 +58,7 @@ class BasicCluster:
 
     def fit(self, x):
         # x(n, M)
-        print(x.shape)
+        # print(x.shape)
         self.num_features = x.shape[1]
         if isinstance(x, torch.Tensor):
             if len(x.shape) == 4:
@@ -68,6 +72,7 @@ class BasicCluster:
         result = self.model.predict(x)
         result = torch.tensor(result, device=self.device)
         self.cluster_result = result
+        print('model {} fitted'.format(self.model.__class__.__name__))
         return result
 
     # 设置全局的保存装饰器
