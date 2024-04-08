@@ -26,6 +26,11 @@
       "type": "int",
       "help": "max number of data"
     },
+    "cluster_model": {
+      "default": "gmm",
+      "type": "str",
+      "help": "cluster model: kmeans / gmm"
+    },
     "noise_type": {
       "default": "sym",
       "type": "str",

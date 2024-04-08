@@ -14,13 +14,20 @@ from torch.cuda.amp import autocast
 from tqdm import tqdm
 
 from LID import get_lids_batches
+from MOF import compute_pca_correct, compute_vec_corr, mof
+from MOF import bkc
 from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilarity  # n, knowledge_entropy2
 from utils.BOX import logbox
 from utils.plotfn import kn_map, plot_wrong_label, plot_images
 
+from model.clusters.BasicCluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch, GMM
+
 plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
 plot_images = logbox.log_artifact_autott(plot_images)
+
+
+
 
 
 class BaseEpoch:
@@ -324,7 +331,7 @@ class NEComputeEpoch(BaseEpoch):
             for key, value in logits_per_class.items():
                 # print(value.shape)
                 # 将(n, C, h, w)的数据转换为C, n, h, w的
-                value = value.permute(1, 0, 2, 3)
+                # value = value.permute(1, 0, 2, 3)
                 ne_dict[key].append(knowledge_entropy(value))
             # ne_dict[key] = np.mean(ne_dict[key])
 
@@ -397,7 +404,7 @@ class PCACorrectEpoch(BaseEpoch):
                     # 先用前两个类为例
                     # print('cl1, cl2', cl1, cl2)
                     class2to1, confdt, max_cor = compute_pca_correct(pca_dict[cl1][layert], pca_dict[cl2][layert],
-                                                                      fimttt)
+                                                                     fimttt)
                     # print('confdt', confdt)
                     max_cos[0, cl1, cl2] = max_cor
                     max_cos[1, cl1, cl2] = confdt
@@ -409,12 +416,13 @@ class PCACorrectEpoch(BaseEpoch):
                     # logits2 = logits2
                     # print(logits2.shape)
                     for i in range(logits2[0].shape[0]):
-                            # print(torch.max(logits2[i]))
+                        # print(torch.max(logits2[i]))
                         #     # print(class2to1.shape, logits2[i].shape)
                         simttt = compute_vec_corr(class2to1, logits2[0][i].view(logits2[0][i].shape[0]))
                         print(simttt)
                         if abs(simttt * confdt * 100) > 0.65:
-                            pca_corrects[cl1][cl2].append(logits2[1][i].cpu().view(logits2[1][i].shape[0], -1))  # 应归为cl1的样本
+                            pca_corrects[cl1][cl2].append(
+                                logits2[1][i].cpu().view(logits2[1][i].shape[0], -1))  # 应归为cl1的样本
             # 打印 保留两位小数
             # np.set_printoptions(precision=2)
 
@@ -429,208 +437,202 @@ class PCACorrectEpoch(BaseEpoch):
                     if cl1 == cl2:
                         continue
                     if len(pca_corrects[cl1][cl2]) > 0:
-                        plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct_{}'.format(epoch), pre=f'pca_correct_{cl2}to{cl1}')
+                        plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct_{}'.format(epoch),
+                                    pre=f'pca_correct_{cl2}to{cl1}')
                         # return
             # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
 
 
-# 从两个类别的主成分中计算要修正的成分
-def compute_pca_correct(pca1, pca2, fimttt):
-    '''
-    从两个类别的主成分中计算要修正的成分
-    :param pca1: 类别1的主成分 (C, C, H, W)
-    :param pca2: 类别2的主成分 (C, C, H, W)
-    '''
-    assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
-    # 如果特征图大小为一，则计算2中与1最相关的主成分
-    if len(pca1.shape) == 2:
-        # print(pca1[0])
-        pca1 = pca1[0].clone()  # C
-        pca2 = pca2.clone()  # (C, C)
+class PCAFindEpoch(BaseEpoch):
+    def __init__(self, model, loader, device, num_class=10, group_size=15, interval=1, bar=True):
+        super(PCACorrectEpoch, self).__init__('PCA', model, loader, device, interval, bar)
+        self.num_class = num_class
+        self.group_size = group_size
 
-        # 标准化
-        pca1 = pca1 / torch.norm(pca1)
-        pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0,
-                                                                  torch.ones_like(pca2))
+    def _run_epoch(self, epoch, *args, **kwargs):
+        if self.group_size < 2:
+            return {'null': 0}
+        self.model.eval()
+        # 获取各层的logits
+        logits_list = defaultdict(dict)
+        class_counts = [0] * self.num_class
+        with torch.no_grad():
+            for batch_idx, (inputs, targets) in self.loader:
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                if len(targets.size()) > 1:
+                    targets = torch.argmax(targets, dim=1)
 
-        # 标准化
-        pca1 = pca1 / torch.norm(pca1)
-        pca2 = pca2 / torch.norm(pca2, dim=1, keepdim=True).where(torch.norm(pca2, dim=1, keepdim=True) > 0,
-                                                                  torch.ones_like(pca2))
+                outputs, logits = self.model(inputs)
 
-        # 计算相关系数
-        corr_matrix = torch.mm(pca2, pca1.view(pca1.size(0), -1))  # (C)
+                for idx, target in enumerate(targets):
+                    label = target.item()
+                    if class_counts[label] < self.group_size:
+                        for key, value in logits.items():
+                            if key in logits_list[label]:
+                                logits_list[label][key] = torch.cat((logits_list[label][key], value[idx].unsqueeze(0)),
+                                                                    dim=0)
+                            else:
+                                logits_list[label][key] = value[idx].unsqueeze(0)
+                        class_counts[label] += 1
 
-        # 找到最大相关系数
-        index1 = 0
-        indexmax = torch.argmax(corr_matrix[1:])
+                    if all(count >= self.group_size for count in class_counts):
+                        break
 
-        # 如果最大相关系数小于主要相关系数，confdt会小于0
-        if abs(corr_matrix[index1]) > abs(corr_matrix[indexmax]):
-            confdt = 0
+                if all(count >= self.group_size for count in class_counts):
+                    break
+
+            # 计算所有层特征向量图的主成分({label, {layer, (C, C, H, W)}})
+            pca_dict = defaultdict(dict)
+            for label, logits_per_class in tqdm(logits_list.items(), desc='Computing PCA'):
+                for key, value in logits_per_class.items():
+                    # 暂时只取最后一层
+                    if key == 'layer4':
+                        # print(label, key)
+                        # pca_dict[label][key] = compute_knowledge(value)
+                        _, pca_dict[label][key] = compute_knowledge(value)
+
+            fimttt = FeatureMapSimilarity(method='cosine')
+
+            # 计算要修正的主成分
+            layert = 'layer4'
+            pca_corrects = {}
+            for cl1 in range(0, self.num_class):
+                pca_corrects[cl1] = {}
+                for cl2 in range(0, self.num_class):
+                    if cl1 == cl2:
+                        continue
+                    pca_corrects[cl1][cl2] = []
+
+                    # 获取2中与该成分对齐的样本
+                    logits2 = [logits_list[cl2][layert], logits_list[cl2]['image']]
+                    # logits2 = logits2
+                    # print(logits2.shape)
+                    for i in range(logits2[0].shape[0]):
+                        # print(torch.max(logits2[i]))
+                        #     # print(class2to1.shape, logits2[i].shape)
+                        simttt = compute_vec_corr(pca_dict, logits2[0][i].view(logits2[0][i].shape[0]))
+                        print(simttt)
+                        if abs(simttt) > 0.65:
+                            pca_corrects[cl1][cl2].append(
+                                logits2[1][i].cpu().view(logits2[1][i].shape[0], -1))  # 应归为cl1的样本
+            # 打印 保留两位小数
+            # np.set_printoptions(precision=2)
+
+            np.set_printoptions(precision=2)
+            # print(np.array2string(max_cos[0], formatter={'float_kind': lambda x: "%.2f" % x}))
+            # print(np.array2string(max_cos[1], formatter={'float_kind': lambda x: "%.2f" % x}))
+
+            # 保存类2中实际标签为1的样本图片
+            # 找到一个置信度最高的
+            for cl1 in range(0, self.num_class):
+                for cl2 in range(0, self.num_class):
+                    if cl1 == cl2:
+                        continue
+                    if len(pca_corrects[cl1][cl2]) > 0:
+                        plot_images(pca_corrects[cl1][cl2], epoch, folder='pca_correct_{}'.format(epoch),
+                                    pre=f'pca_correct_{cl2}to{cl1}')
+                        # return
+            # plot_images(pca_corrects[1][2], epoch, folder='pca_correct', pre='pca_correct2to1')
+
+
+class ClusterBackwardEpoch(BaseEpoch):
+    def __init__(self, model, loader, cluster_model, device, num_class=10, group_size=15, interval=1, bar=True):
+        super(ClusterBackwardEpoch, self).__init__('Cluster', model, loader, device, interval, bar)
+        self.num_class = num_class
+        self.group_size = group_size
+        self.layers = ['layer4', 'label']
+        if cluster_model == 'kmeans' or cluster_model == 'KMeans':
+            self.cluster_model = KMeans()
+        elif cluster_model == 'dbscan' or cluster_model == 'DBSCAN':
+            self.cluster_model = DBSCAN()
+        elif cluster_model == 'agglomerative' or cluster_model == 'Agglomerative':
+            self.cluster_model = AgglomerativeClustering()
+        elif cluster_model == 'spectral' or cluster_model == 'Spectral':
+            self.cluster_model = SpectralClustering()
+        elif cluster_model == 'birch' or cluster_model == 'Birch':
+            self.cluster_model = Birch()
+        elif cluster_model == 'gmm' or cluster_model == 'GMM':
+            self.cluster_model = GMM()
         else:
-            # 计算偏离置信程度
-            confdt = 1 - (abs(corr_matrix[index1]) / abs(corr_matrix[indexmax]))
-            if confdt < 0:
-                confdt = 0
-            else:
-                confdt = confdt.item()
+            raise ValueError('Unknown cluster model')
 
-        # 打印信息检查
-        # print('main_cor:{}, max_cor:{}'.format(corr_matrix[index1].item(), corr_matrix[indexmax].item()))
-        # print('confdt', confdt.item())
+    def _get_logits(self, epoch):
+        if self.group_size < 2:
+            return {'null': 0}
+        self.model.eval()
+        # 获取各层的logits
+        logits_list = {}
+        class_counts = [0] * self.num_class
+        with torch.no_grad():
+            for batch_idx, (inputs, targets) in self.loader:
+                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                if len(targets.size()) > 1:
+                    targets = torch.argmax(targets, dim=1)
 
-        # 取出最大相关系数对应的主成分
-        pca_correct2 = pca2[indexmax]
+                outputs, logits = self.model(inputs)
+                logits['label'] = targets  # TODO
 
-        return pca_correct2, confdt, corr_matrix[index1]
+                for idx, target in enumerate(targets):
+                    label = target.item()
+                    if class_counts[label] < self.group_size:
+                        for layer, value in logits.items():
+                            if layer in logits_list[label]:
+                                logits_list[layer] = torch.cat((logits_list[label][layer], value[idx].unsqueeze(0)),
+                                                               dim=0)
+                            else:
+                                logits_list[layer] = value[idx].unsqueeze(0)
+                        class_counts[label] += 1
 
-    # 复制值
-    pca1 = pca1.clone()
-    pca2 = pca2.clone()
+                    if all(count >= self.group_size for count in class_counts):
+                        return dict(logits_list)
 
-    shape = pca1.shape
-    # 取出类别1中最大主成分
-    pca1 = pca1[0]  # (C, H, W)
+    def _run_epoch(self, epoch, *args, **kwargs):
+        logits_list = self._get_logits(epoch)
+        # 从Hi和Hi-1中循环算更正方向向量, 从倒数第二层与倒数第一层开始往前
+        for i in range(len(self.layers) - 1, 0, -1):
+            layer = self.layers[i - 1]
+            next_layer = self.layers[i]
+            print(layer, next_layer)
+            # 对最后一层聚类
+            cluster_labels_next = self.cluster_model.fit(logits_list[next_layer])
 
-    # 整理
-    pca1 = pca1.view(-1)  # (C*H*W)
-    pca2 = pca2.view(pca2.shape[0], -1)  # (C, C*H*W)
+            # 计算获取了几个类, 用unique去重
+            next_layer_classes = np.unique(cluster_labels_next)
 
-    # 计算范数
-    norm_pca1 = torch.norm(pca1)
-    norm_pca2 = torch.norm(pca2, dim=1, keepdim=True)
+            # 打印各获取了几个类
+            print('cluster_labels_next:', len(next_layer_classes))
 
-    # 避免除以零的情况
-    pca1 = pca1 / norm_pca1 if norm_pca1 > 0 else pca1
-    pca2 = pca2 / norm_pca2.where(norm_pca2 > 0, torch.ones_like(norm_pca2))
+            cluster_per_label = {}
+            # 按照最后一层分出来的类遍历类别分别对上一层聚类
+            for next_label in next_layer_classes:
+                # 获取上一层的特征向量
+                logits_list_this = logits_list[layer][
+                    cluster_labels_next == next_label]  # 如果不行就写成torch的形式找label对应的数据的layer层数据
+                # 对上一层聚类
+                cluster_labels_this = self.cluster_model.fit(logits_list_this)
+                # 计算获取了几个类, 用unique去重
+                classes = np.unique(cluster_labels_this)
+                # 打印各获取了几个类
+                print('cluster_labels_this:', len(classes))
 
-    # 计算要修正的成分, 找到主成分2与主成分1最大成分最相关的主成分
-    corr_index = torch.matmul(pca2, pca1)  # (C)
+                # 将所有数据按照类别重排(h1, h2, h3) (1, 1, 2)
+                # idx = np.argsort(cluster_labels_this)
+                # logits_list_this = logits_list_this[idx]
+                # cluster_labels_this = cluster_labels_this[idx]
 
-    index1 = 0  # 两个类别最大主成分的相关系数
-    indexmax = torch.argmax(corr_index[1:])  # 最大相关系数
+                # 记录改类别下所有layer层数据(n,M)以及其对应layer层聚类标签(n)
+                cluster_per_label[next_label] = [logits_list_this, cluster_labels_this]
 
-    # 计算偏离置信程度
-    confdt = 1 - (corr_index[indexmax] / corr_index[index1])
+            vec_allt = {}
+            # 对每个标签的数据做特征值分解
+            for next_label in next_layer_classes:
+                vecs_this, val_this = mof(cluster_per_label[next_label][0], cluster_per_label[next_label][1],
+                                          num=len(next_layer_classes))
+                # 此时每个vec_this是一个特征向量
+                vec_allt[next_label] = [vecs_this, val_this]
 
-    # 找到最大的相关系数
-    # 取出最大相关系数对应的主成分
-    pca_correct2 = pca2[indexmax]  # (C*H*W)
-
-    # 还原形状
-    pca_correct2 = pca_correct2.view(shape[1], shape[2], shape[3])  # (C, H, W)
-    # print(pca_correct2.shape)
-
-    return pca_correct2, confdt, corr_index[indexmax]
-
-
-# # 计算主成分2和主成分1中最大主成分的相关系数
-# def compute_pca_corrcl(pca1, pca2, fimttt):
-#     '''
-#     计算两个主成分的相关系数矩阵
-#     :param pca1: 主成分1 (C, C, H, W) (取0, C, H, W)
-#     :param pca2: 主成分2 (C, C, H, W)
-#     '''
-#
-#     assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
-#
-#     # 计算相关系数矩阵
-#     corr_matrix = np.zeros(pca2.shape[0])
-#     i = 0
-#     for j in range(i, pca2.shape[0]):
-#         corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
-#         corr_matrix[j, i] = corr_matrix[i, j]
-#
-#     return corr_matrix
-#
-#
-# # 计算两个主成分的相关系数矩阵
-# def compute_pca_corr(pca1, pca2):
-#     '''
-#     计算两个主成分的相关系数矩阵
-#     :param pca1: 主成分1 (C, C, H, W)
-#     :param pca2: 主成分2 (C, C, H, W)
-#     '''
-#
-#     assert pca1.shape == pca2.shape, 'The shape of pca1 and pca2 must be the same.'
-#
-#     # 计算相关系数矩阵
-#     corr_matrix = np.zeros((pca1.shape[0], pca2.shape[0]))
-#     for i in range(pca1.shape[0]):
-#         for j in range(i, pca2.shape[0]):
-#             corr_matrix[i, j] = compute_vec_corr(pca1[i], pca2[j])
-#             corr_matrix[j, i] = corr_matrix[i, j]
-#
-#     return corr_matrix
-
-
-def compute_vec_corr(vec1, vec2):
-    '''
-    计算两个向量的相关系数
-    :param vec1: 向量1 (C, H, W)
-    :param vec2: 向量2 (C, H, W)
-    :return: 相关系数
-    '''
-    # 复制值
-    vec1 = vec1.clone()
-    vec2 = vec2.clone()
-    assert vec1.shape == vec2.shape, 'The shape of vec1 and vec2 must be the same. {}, {}'.format(vec1.shape, vec2.shape)
-    # print(vec1[1], vec2[1])
-
-    # 如果传入的是向量C
-    if len(vec1.shape) == 1:
-        # 计算相关系数
-        inner_product = torch.dot(vec1, vec2)
-        norm1 = torch.norm(vec1)
-        norm2 = torch.norm(vec2)
-
-        # 避免除以零的情况
-        norm1 = norm1 if norm1 > 0 else 1
-        norm2 = norm2 if norm2 > 0 else 1
-
-        corr = inner_product / (norm1 * norm2)
-
-        return corr.item()
-
-    # 获取特征图的大小
-    _, H, W = vec1.size()
-
-    # 如果 H 和 W 大于1，那么执行去均值操作
-    if H > 1 and W > 1:
-        vec1_mean = vec1.mean(dim=(1, 2), keepdim=True)
-        vec2_mean = vec2.mean(dim=(1, 2), keepdim=True)
-
-        vec1 = vec1 - vec1_mean
-        vec2 = vec2 - vec2_mean
-
-    # print(vec1, vec2)
-
-    # 计算标准化后的向量的内积
-    inner_product = (vec1 * vec2).sum(dim=(1, 2))
-
-    # 计算向量的模
-    norm1 = torch.sqrt((vec1 * vec1).sum(dim=(1, 2)))
-    norm2 = torch.sqrt((vec2 * vec2).sum(dim=(1, 2)))
-
-    # 避免除以零的情况
-    valid = (norm1 != 0) & (norm2 != 0)
-    corr = torch.where(valid, inner_product / (norm1 * norm2), torch.zeros_like(inner_product))
-
-    # Additional debugging information
-    # print(f"Inner products: {inner_product}")
-    # print(f"Norms of vec1: {norm1}")
-    # print(f"Norms of vec2: {norm2}")
-    # print(f"Valid mask: {valid}")
-    # print(f"Correlation coefficients: {corr}")
-
-    # 计算相关系数的累加值
-    corr_sum = abs(corr).sum()
-
-    # 然后除以元素的总数来得到平均值
-    corr_mean = corr_sum / corr.numel()
-
-    return corr_mean.item()  # 返回标量值
+            # 破碎知识筛选
+            vec_allt = bkc(vec_allt, num_class=len(next_layer_classes))
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

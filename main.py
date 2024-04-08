@@ -15,7 +15,8 @@ from torch.cuda.amp import GradScaler
 
 import utils.arg.parser
 from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, PCACorrectEpoch, \
-    BaseEpoch, plot_kmp
+    BaseEpoch, plot_kmp, ClusterBackwardEpoch
+
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
 from model.resnet50 import ResNet50FeatureExtractor
@@ -37,6 +38,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     stop_count = 0
     timert = utils.EpochTimer()
     BaseEpoch.set_max_epoch(args.epochs)
+    # cluster_model = KMeans(n_clusters=args.num_classes)
     train_epoch = TrainEpoch(model, train_loader, optimizer, criterion, device,
                              scaler=GradScaler() if args.amp else None)
     val_epoch = ValEpoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
@@ -51,6 +53,9 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                       group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
     pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes,
                                         group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
+    cluster_backward_epoch = ClusterBackwardEpoch(model, train_loader, args.cluster_model, device,
+                                                  num_class=args.num_classes,
+                                                  group_size=args.knowledge_group_size, interval=args.plot_interval)
 
     for epoch in range(args.epochs):
         timert._start()
@@ -67,6 +72,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         # ne_dict = ne_compute_epoch.run(epoch + 1)
         pca_compute_epoch.run(epoch + 1)
+        cluster_backward_epoch.run(epoch + 1)
 
         # if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
         #     criterion.update(knowes, epoch + 1)
