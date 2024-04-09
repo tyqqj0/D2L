@@ -136,6 +136,12 @@ class DBSCAN(BasicCluster):
         super(DBSCAN, self).__init__(model, num_features)
 
 
+# class HDBSCAN(BasicCluster):
+#     def __init__(self, num_features=None, device=0, min_cluster_size=5):
+#         model = sklearn.cluster.HDBSCAN(min_cluster_size=min_cluster_size)
+#         super(HDBSCAN, self).__init__(model, num_features)
+
+
 class AgglomerativeClustering(BasicCluster):
     def __init__(self, num_features=None, device=0, n_clusters=10):
         model = sklearn.cluster.AgglomerativeClustering(n_clusters=n_clusters)

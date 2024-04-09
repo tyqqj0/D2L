@@ -29,7 +29,7 @@
     "cluster_model": {
       "default": "gmm",
       "type": "str",
-      "help": "cluster model: kmeans / gmm"
+      "help": "cluster model: kmeans / gmm / dbscan / agglomerative / spectral / birch"
     },
     "noise_type": {
       "default": "sym",
