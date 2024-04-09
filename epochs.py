@@ -20,13 +20,12 @@ from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilar
 from utils.BOX import logbox
 from utils.plotfn import kn_map, plot_wrong_label, plot_images
 
-from model.clusters.BasicCluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch, GMM, TsneGMM, TsneKMeans
+from model.clusters.BasicCluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch, GMM, \
+    TsneGMM, TsneKMeans
 
 plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
 plot_images = logbox.log_artifact_autott(plot_images)
-
-
 
 
 class BaseEpoch:
@@ -646,7 +645,18 @@ class ClusterBackwardEpoch(BaseEpoch):
                 vec_allt[next_label] = vecs_this
                 val_allt[next_label] = val_this
             # 破碎知识筛选
-            vec_allt = bkc(vec_allt, val_allt, next_layer_classes)
+            corrcetv = bkc(vec_allt, val_allt, next_layer_classes)
+
+            # 计算各类修正后成分与数据的相似度
+            for next_label in next_layer_classes:
+                vec = corrcetv[next_label]  # (num, M)
+                datatt = logits_list[layer][cluster_labels_next == next_label]  # (n, M)
+
+                # 计算相似程度
+                corrst = torch.matmul(datatt, vec.T)  # (n, num)
+                corrst = torch.max(corrst, dim=1)[0]  # (n)
+
+                print(corrst)
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):
