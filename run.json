@@ -27,7 +27,7 @@
       "help": "max number of data"
     },
     "cluster_model": {
-      "default": "TsneGMM",
+      "default": "dbscan",
       "type": "str",
       "help": "cluster model: kmeans / gmm / dbscan / agglomerative / spectral / birch / TsneGMM / TsneKMeans"
     },

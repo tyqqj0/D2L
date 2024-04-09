@@ -615,6 +615,8 @@ class ClusterBackwardEpoch(BaseEpoch):
                 # 获取上一层的特征向量
                 logits_list_this = logits_list[layer][
                     cluster_labels_next == next_label]  # 如果不行就写成torch的形式找label对应的数据的layer层数据
+
+                # print(logits_list_this.shape)
                 # 对上一层聚类
                 cluster_labels_this = self.cluster_model.fit(logits_list_this)
                 # 计算获取了几个类, 用unique去重
@@ -632,6 +634,7 @@ class ClusterBackwardEpoch(BaseEpoch):
 
                 # 记录改类别下所有layer层数据(n,M)以及其对应layer层聚类标签(n)
                 cluster_per_label[next_label] = [logits_list_this, cluster_labels_this]
+                # print(logits_list[layer].shape)
 
             vec_allt = {}
             val_allt = {}
@@ -650,13 +653,32 @@ class ClusterBackwardEpoch(BaseEpoch):
             # 计算各类修正后成分与数据的相似度
             for next_label in next_layer_classes:
                 vec = corrcetv[next_label]  # (num, M)
-                datatt = logits_list[layer][cluster_labels_next == next_label]  # (n, M)
+                # print(logits_list[layer].shape)
+
+                datatt = logits_list[layer][cluster_labels_next == next_label, :]
+                datatt = datatt.view(datatt.shape[0], -1)
+                # vec = vec / torch.norm(vec, dim=1, keepdim=True)
+                datatt = datatt / torch.norm(datatt, dim=1, keepdim=True)
+                # print(torch.norm(datatt, dim=1).shape)
+                # datatt = (datatt - datatt.mean(dim=1, keepdim=True)) / datatt.std(dim=1, keepdim=True)
+                # vec = (vec - vec.mean(dim=1, keepdim=True)) / vec.std(dim=1, keepdim=True)
+                # print("logits_list[layer].shape:", logits_list[layer].shape)
+                # print("cluster_labels_next.shape:", cluster_labels_next.shape)
+                # print("datatt.shape:", datatt.shape)
+                # print("vec.shape:", vec.shape)
 
                 # 计算相似程度
                 corrst = torch.matmul(datatt, vec.T)  # (n, num)
-                corrst = torch.max(corrst, dim=1)[0]  # (n)
+                corrst = torch.max(abs(corrst), dim=1)[0]  # (n)
 
-                print(corrst)
+                # 计算 datatt 和 vec 的模
+                # datatt_norm = torch.norm(datatt, dim=1, keepdim=True)
+                # vec_norm = torch.norm(vec, dim=1, keepdim=True)
+                #
+                # # 除以模进行归一化
+                # corrst = corrst / (datatt_norm * vec_norm.t())
+
+                print(next_label, corrst)
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

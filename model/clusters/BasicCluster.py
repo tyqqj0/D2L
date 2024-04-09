@@ -69,9 +69,10 @@ class BasicCluster:
         # print('model {} fitted'.format(self.model.__class__.__name__))
         return result
 
-    def fit(self, x):
+    def fit(self, x1):
         # x(n, M)
         # print(x.shape)
+        x = x1
         self.num_features = x.shape[1]
         if isinstance(x, torch.Tensor):
             if len(x.shape) == 4:

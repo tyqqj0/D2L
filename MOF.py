@@ -58,7 +58,9 @@ import torch
 #     return corr_matrix
 
 
-def mof(x, label, num=10):
+def mof(x1, label1, num=10):
+    x = x1.clone()
+    label = label1.clone()
     if len(x.shape) == 4:
         x = x.view(x.shape[0], -1)
     # x(n, M), label(n)
@@ -76,7 +78,7 @@ def mof(x, label, num=10):
     xtx = torch.mm(xtx, x)
 
     # 求特征值和特征向量
-    eig_val, eig_vec = torch.linalg.eigh(xtx)
+    eig_val, eig_vec = torch.linalg.eigh(xtx) #考虑换成那个eig非对称的
 
     # 按照大小排序
     # 按照大小排序
@@ -126,7 +128,7 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.45):
 
             # print(sim_matrix)
 
-            print(np.array2string(sim_matrix.cpu().numpy(), formatter={'float_kind': lambda x: "%.2f" % x}))
+            # print(np.array2string(sim_matrix.cpu().numpy(), formatter={'float_kind': lambda x: "%.2f" % x}))
 
             # 找到余弦相似度超过阈值的向量对
             # indices = torch.where(sim_matrix > threshold) #abs()
@@ -150,7 +152,14 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.45):
             vec_allt[all_classt[j]] = vec_j
 
     # 计算每个类还剩多少成分不为零
-    num_components = {key: (torch.sum(vec_allt[key] != 0, dim=1) != 0).sum().item() for key in all_classt}
+    # 移除零向量及对应的特征值
+    for key in all_classt:
+        nonzero_idx = torch.norm(vec_allt[key], dim=1) != 0
+        vec_allt[key], val_allt[key] = vec_allt[key][nonzero_idx], val_allt[key][nonzero_idx]
+
+        # 计算每个类还剩多少成分不为零
+    num_components = {key: vec_allt[key].shape[0] for key in all_classt}
+    # print(num_components)
     print(num_components)
 
     return vec_allt
