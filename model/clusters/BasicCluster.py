@@ -8,7 +8,11 @@ import os
 
 # import os
 import matplotlib.pyplot as plt
-import sklearn
+# os.environ['OMP_NUM_THREADS'] = '1'
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='sklearn.cluster')
+import sklearn.manifold
+import sklearn.cluster
 from sklearn.mixture import GaussianMixture
 import torch
 
@@ -72,7 +76,7 @@ class BasicCluster:
         result = self.model.predict(x)
         result = torch.tensor(result, device=self.device)
         self.cluster_result = result
-        print('model {} fitted'.format(self.model.__class__.__name__))
+        # print('model {} fitted'.format(self.model.__class__.__name__))
         return result
 
     # 设置全局的保存装饰器

@@ -61,6 +61,8 @@ from torch import nn
 
 
 def mof(x, label, num=10):
+    if len(x.shape) == 4:
+        x = x.view(x.shape[0], -1)
     # x(n, M), label(n)
     # 标准化并求协方差矩阵
     x = x - x.mean(dim=0)
@@ -76,10 +78,11 @@ def mof(x, label, num=10):
     xtx = torch.mm(xtx, x)
 
     # 求特征值和特征向量
-    eig_val, eig_vec = torch.symeig(xtx, eigenvectors=True)
+    eig_val, eig_vec = torch.linalg.eigh(xtx)
 
     # 按照大小排序
-    idx = eig_val[:, 0].argsort(descending=True)
+    # 按照大小排序
+    idx = eig_val.argsort(descending=True)
     idx = idx[:num]
     eig_val = eig_val[idx]
     eig_vec = eig_vec[:, idx]
@@ -100,7 +103,7 @@ def mof(x, label, num=10):
     return eig_vec, eig_val
 
 
-def bkc(vec_allt, val_allt, all_classt, threshold=0.9):
+def bkc(vec_allt, val_allt, all_classt, threshold=0.5):
     # vec_allt(num, M), all_classt(n)
     # 对主要方向进行清理，去除不同类别的与其他类别过度相似的次要方向
 
@@ -116,15 +119,22 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.9):
             vec_j, val_j = vec_allt[all_classt[j]], val_allt[all_classt[j]]
 
             # 计算两个类别的每对向量的余弦相似度
+            # print(vec_i.shape, vec_j.shape) # (10, 2048)
             sim_matrix = torch.mm(vec_i, vec_j.t())
             sim_matrix = sim_matrix / torch.norm(vec_i, dim=1).unsqueeze(1)
             sim_matrix = sim_matrix / torch.norm(vec_j, dim=1).unsqueeze(0)
+
+            # print(sim_matrix)
+
+            print(np.array2string(sim_matrix.cpu().numpy(), formatter={'float_kind': lambda x: "%.2f" % x}))
 
             # 找到余弦相似度超过阈值的向量对
             indices = torch.where(sim_matrix > threshold)
 
             # 对每个超过阈值的向量对,去除特征值较小的向量
             for ii, jj in zip(indices[0], indices[1]):
+                if ii == jj:
+                    continue
                 print('ii:', ii, 'jj:', jj)
                 if val_i[ii] < val_j[jj]:
                     vec_i[ii] = torch.zeros_like(vec_i[ii])
@@ -136,7 +146,7 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.9):
             vec_allt[all_classt[j]] = vec_j
 
     # 计算每个类还剩多少成分不为零
-    num_components = {key: sum(vec_allt[key] != 0) for key in all_classt}
+    num_components = {key: torch.sum(vec_allt[key] != 0, dim=1).tolist() for key in all_classt}
     print(num_components)
 
     return vec_allt

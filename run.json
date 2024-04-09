@@ -22,7 +22,7 @@
       "help": "number of classes, automatically set"
     },
     "max_data": {
-      "default": 2048,
+      "default": 6000,
       "type": "int",
       "help": "max number of data"
     },

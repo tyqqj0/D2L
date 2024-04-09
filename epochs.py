@@ -26,7 +26,7 @@ plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
 plot_images = logbox.log_artifact_autott(plot_images)
 
-os.environ['OMP_NUM_THREADS'] = '1'
+
 
 
 class BaseEpoch:
@@ -591,7 +591,7 @@ class ClusterBackwardEpoch(BaseEpoch):
     def _run_epoch(self, epoch, *args, **kwargs):
         logits_list = self._get_logits(epoch)
         # 从Hi和Hi-1中循环算更正方向向量, 从倒数第二层与倒数第一层开始往前
-        for i in range(len(self.layers) - 1, 1, -1):
+        for i in range(len(self.layers) - 1, 0, -1):
             layer = self.layers[i - 1]
             next_layer = self.layers[i]
             print(layer, next_layer)
@@ -600,23 +600,27 @@ class ClusterBackwardEpoch(BaseEpoch):
             cluster_labels_next = self.cluster_model.fit(logits_list[next_layer])
 
             # 计算获取了几个类, 用unique去重
-            next_layer_classes = torch.unique(cluster_labels_next).int()
+            next_layer_classes = torch.unique(cluster_labels_next).int().tolist()
 
             # 打印各获取了几个类
-            print('cluster_labels_next:', len(next_layer_classes))
+            # print('cluster_labels_next:', len(next_layer_classes))
 
             cluster_per_label = {}
             # 按照最后一层分出来的类遍历类别分别对上一层聚类
-            for next_label in tqdm(next_layer_classes, desc='Clustering'):
+            pbar = tqdm(next_layer_classes, desc=f'Clustering')
+            for next_label in pbar:
                 # 获取上一层的特征向量
                 logits_list_this = logits_list[layer][
                     cluster_labels_next == next_label]  # 如果不行就写成torch的形式找label对应的数据的layer层数据
                 # 对上一层聚类
                 cluster_labels_this = self.cluster_model.fit(logits_list_this)
                 # 计算获取了几个类, 用unique去重
-                classes = torch.unique(cluster_labels_this).int()
+                classes = torch.unique(cluster_labels_this).int().tolist()
                 # 打印各获取了几个类
-                print('cluster_labels_this:', len(classes))
+                # print('cluster_labels_this:', len(classes))
+                # tqdm.write(f"Cluster {next_label}: {len(classes)} classes")
+                # pbar.set_description(f'Clustering (Cluster {next_label}: {len(classes)} classes)')
+                pbar.set_postfix(cluster=next_label, classes=len(classes))
 
                 # 将所有数据按照类别重排(h1, h2, h3) (1, 1, 2)
                 # idx = np.argsort(cluster_labels_this)
@@ -627,15 +631,18 @@ class ClusterBackwardEpoch(BaseEpoch):
                 cluster_per_label[next_label] = [logits_list_this, cluster_labels_this]
 
             vec_allt = {}
+            val_allt = {}
             # 对每个标签的数据做特征值分解
             for next_label in tqdm(next_layer_classes, desc='MOF'):
+                # next_label = next_label.int()
                 vecs_this, val_this = mof(cluster_per_label[next_label][0], cluster_per_label[next_label][1],
                                           num=len(next_layer_classes))
+                # print(vecs_this.shape)
                 # 此时每个vec_this是一个特征向量
-                vec_allt[next_label] = [vecs_this, val_this]
-
+                vec_allt[next_label] = vecs_this
+                val_allt[next_label] = val_this
             # 破碎知识筛选
-            vec_allt = bkc(vec_allt, num_class=len(next_layer_classes))
+            vec_allt = bkc(vec_allt, val_allt, next_layer_classes)
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

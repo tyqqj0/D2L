@@ -28,6 +28,8 @@ from utils.text import text_in_box
 plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 dict_to_json = logbox.log_artifact_autott(dict_to_json)
 
+# os.environ['OMP_NUM_THREADS'] = '1'
+
 
 # logbox = box()
 
@@ -55,7 +57,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                         group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
     cluster_backward_epoch = ClusterBackwardEpoch(model, train_loader, args.cluster_model, device,
                                                   num_class=args.num_classes,
-                                                  group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
+                                                  group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)#
 
     for epoch in range(args.epochs):
         timert._start()
