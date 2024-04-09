@@ -20,7 +20,7 @@ from know_entropy import knowledge_entropy, compute_knowledge, FeatureMapSimilar
 from utils.BOX import logbox
 from utils.plotfn import kn_map, plot_wrong_label, plot_images
 
-from model.clusters.BasicCluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch, GMM
+from model.clusters.BasicCluster import KMeans, DBSCAN, AgglomerativeClustering, SpectralClustering, Birch, GMM, TsneGMM, TsneKMeans
 
 plot_kn_map = logbox.log_artifact_autott(kn_map)
 plot_wrong_label = logbox.log_artifact_autott(plot_wrong_label)
@@ -552,6 +552,10 @@ class ClusterBackwardEpoch(BaseEpoch):
             self.cluster_model = Birch()
         elif cluster_model == 'gmm' or cluster_model == 'GMM':
             self.cluster_model = GMM()
+        elif cluster_model == 'tsne_gmm' or cluster_model == 'TsneGMM':
+            self.cluster_model = TsneGMM()
+        elif cluster_model == 'tsne_kmeans' or cluster_model == 'TsneKMeans':
+            self.cluster_model = TsneKMeans()
         else:
             raise ValueError('Unknown cluster model')
         print(self.cluster_model)

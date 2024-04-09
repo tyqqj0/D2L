@@ -20,7 +20,7 @@ import torch
 # import torchvision
 
 
-__all__ = ['KMeans', 'DBSCAN', 'AgglomerativeClustering', 'SpectralClustering', 'Birch', 'GMM']
+__all__ = ['KMeans', 'DBSCAN', 'AgglomerativeClustering', 'SpectralClustering', 'Birch', 'GMM', 'TsneGMM', 'TsneKMeans']
 
 
 def _tsne(x):
@@ -135,6 +135,23 @@ class DBSCAN(BasicCluster):
         model = sklearn.cluster.DBSCAN(eps=eps, min_samples=min_samples)
         super(DBSCAN, self).__init__(model, num_features)
 
+    # dbscan没有predict方法，所以重写fit方法
+    def fit(self, x):
+        # x(n, M)
+        # print(x.shape)
+        self.num_features = x.shape[1]
+        if isinstance(x, torch.Tensor):
+            if len(x.shape) == 4:
+                x = x.view(x.shape[0], -1)
+            self.device = x.device
+            x = x.cpu().detach().numpy()
+        self.cluster_result = self.model.fit_predict(x)
+        self.fitted = True
+        # print('model {} fitted'.format(self.model.__class__.__name__))
+        return self.cluster_result
+
+
+
 
 # class HDBSCAN(BasicCluster):
 #     def __init__(self, num_features=None, device=0, min_cluster_size=5):
@@ -146,6 +163,7 @@ class AgglomerativeClustering(BasicCluster):
     def __init__(self, num_features=None, device=0, n_clusters=10):
         model = sklearn.cluster.AgglomerativeClustering(n_clusters=n_clusters)
         super(AgglomerativeClustering, self).__init__(model, num_features)
+
 
 
 class SpectralClustering(BasicCluster):
@@ -164,3 +182,46 @@ class GMM(BasicCluster):
     def __init__(self, num_features=None, device=0, n_clusters=10):
         model = GaussianMixture(n_components=n_clusters)
         super(GMM, self).__init__(model, num_features)
+
+class TsneGMM(BasicCluster):
+    def __init__(self, num_features=None, device=0, n_clusters=10):
+        model = GaussianMixture(n_components=n_clusters)
+        super(TsneGMM, self).__init__(model, num_features)
+        self.tsne = sklearn.manifold.TSNE(n_components=2)
+
+    def fit(self, x):
+        # x(n, M)
+        # print(x.shape)
+        self.num_features = x.shape[1]
+        if isinstance(x, torch.Tensor):
+            if len(x.shape) == 4:
+                x = x.view(x.shape[0], -1)
+            self.device = x.device
+            x = x.cpu().detach().numpy()
+        x = self.tsne.fit_transform(x)
+        self.cluster_result = self.model.fit_predict(x)
+        self.fitted = True
+        # print('model {} fitted'.format(self.model.__class__.__name__))
+        return self.cluster_result
+
+
+class TsneKMeans(BasicCluster):
+    def __init__(self, num_features=None, device=0, num_clusters=10):
+        model = sklearn.cluster.KMeans(n_clusters=num_clusters)
+        super(TsneKMeans, self).__init__(model, num_features)
+        self.tsne = sklearn.manifold.TSNE(n_components=2)
+
+    def fit(self, x):
+        # x(n, M)
+        # print(x.shape)
+        self.num_features = x.shape[1]
+        if isinstance(x, torch.Tensor):
+            if len(x.shape) == 4:
+                x = x.view(x.shape[0], -1)
+            self.device = x.device
+            x = x.cpu().detach().numpy()
+        x = self.tsne.fit_transform(x)
+        self.cluster_result = self.model.fit_predict(x)
+        self.fitted = True
+        # print('model {} fitted'.format(self.model.__class__.__name__))
+        return self.cluster_result
