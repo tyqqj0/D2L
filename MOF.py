@@ -103,7 +103,7 @@ def mof(x, label, num=10):
     return eig_vec, eig_val
 
 
-def bkc(vec_allt, val_allt, all_classt, threshold=0.5):
+def bkc(vec_allt, val_allt, all_classt, threshold=0.45):
     # vec_allt(num, M), all_classt(n)
     # 对主要方向进行清理，去除不同类别的与其他类别过度相似的次要方向
 
@@ -120,33 +120,37 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.5):
 
             # 计算两个类别的每对向量的余弦相似度
             # print(vec_i.shape, vec_j.shape) # (10, 2048)
+            eps = 1e-8  # 一个小的常数
             sim_matrix = torch.mm(vec_i, vec_j.t())
-            sim_matrix = sim_matrix / torch.norm(vec_i, dim=1).unsqueeze(1)
-            sim_matrix = sim_matrix / torch.norm(vec_j, dim=1).unsqueeze(0)
+            sim_matrix = sim_matrix / torch.clamp(torch.norm(vec_i, dim=1).unsqueeze(1), min=eps)
+            sim_matrix = sim_matrix / torch.clamp(torch.norm(vec_j, dim=1).unsqueeze(0), min=eps)
+            sim_matrix = abs(sim_matrix)
 
             # print(sim_matrix)
 
             print(np.array2string(sim_matrix.cpu().numpy(), formatter={'float_kind': lambda x: "%.2f" % x}))
 
             # 找到余弦相似度超过阈值的向量对
-            indices = torch.where(sim_matrix > threshold)
+            # indices = torch.where(sim_matrix > threshold) #abs()
 
             # 对每个超过阈值的向量对,去除特征值较小的向量
-            for ii, jj in zip(indices[0], indices[1]):
-                if ii == jj:
-                    continue
-                print('ii:', ii, 'jj:', jj)
-                if val_i[ii] < val_j[jj]:
-                    vec_i[ii] = torch.zeros_like(vec_i[ii])
-                else:
-                    vec_j[jj] = torch.zeros_like(vec_j[jj])
+            for ii in range(vec_i.shape[0]):
+                for jj in range(vec_j.shape[0]):
+                    # 如果余弦相似度超过阈值,将特征值较小的特征方向置为零向量
+                    if sim_matrix[ii, jj] > threshold:
+                        print(
+                            f'Similarity between class {all_classt[i]} direction {ii} and class {all_classt[j]} direction {jj}: {sim_matrix[ii, jj]}')
+                        if val_i[ii] < val_j[jj]:
+                            vec_i[ii] = torch.zeros_like(vec_i[ii])
+                        else:
+                            vec_j[jj] = torch.zeros_like(vec_j[jj])
 
             # 更新字典中的向量
             vec_allt[all_classt[i]] = vec_i
             vec_allt[all_classt[j]] = vec_j
 
     # 计算每个类还剩多少成分不为零
-    num_components = {key: torch.sum(vec_allt[key] != 0, dim=1).tolist() for key in all_classt}
+    num_components = {key: (torch.sum(vec_allt[key] != 0, dim=1) != 0).sum().item() for key in all_classt}
     print(num_components)
 
     return vec_allt

@@ -27,7 +27,7 @@
       "help": "max number of data"
     },
     "cluster_model": {
-      "default": "gmm",
+      "default": "agglomerative",
       "type": "str",
       "help": "cluster model: kmeans / gmm / dbscan / agglomerative / spectral / birch"
     },
