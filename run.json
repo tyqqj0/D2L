@@ -29,7 +29,7 @@
     "cluster_model": {
       "default": "agglomerative",
       "type": "str",
-      "help": "cluster model: kmeans / gmm / dbscan / agglomerative / spectral / birch"
+      "help": "cluster model: kmeans / gmm / dbscan / agglomerative / spectral / birch / TsneGMM / TsneKMeans"
     },
     "noise_type": {
       "default": "sym",
