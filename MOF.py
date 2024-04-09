@@ -7,8 +7,6 @@
 
 import numpy as np
 import torch
-from torch.utils import data
-from torch import nn
 
 
 # import os
@@ -137,6 +135,8 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.45):
             for ii in range(vec_i.shape[0]):
                 for jj in range(vec_j.shape[0]):
                     # 如果余弦相似度超过阈值,将特征值较小的特征方向置为零向量
+                    if ii == 0 and jj == 0:
+                        continue
                     if sim_matrix[ii, jj] > threshold:
                         print(
                             f'Similarity between class {all_classt[i]} direction {ii} and class {all_classt[j]} direction {jj}: {sim_matrix[ii, jj]}')

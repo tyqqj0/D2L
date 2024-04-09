@@ -145,19 +145,14 @@ class DBSCAN(BasicCluster):
         super(DBSCAN, self).__init__(model, num_features)
 
     # dbscan没有predict方法，所以重写fit方法
-    def fit(self, x):
+    def _fit(self, x):
         # x(n, M)
         # print(x.shape)
-        self.num_features = x.shape[1]
-        if isinstance(x, torch.Tensor):
-            if len(x.shape) == 4:
-                x = x.view(x.shape[0], -1)
-            self.device = x.device
-            x = x.cpu().detach().numpy()
-        self.cluster_result = self.model.fit_predict(x)
-        self.fitted = True
+
+        result = self.model.fit_predict(x)
+
         # print('model {} fitted'.format(self.model.__class__.__name__))
-        return self.cluster_result
+        return result
 
 
 # class HDBSCAN(BasicCluster):
@@ -199,7 +194,9 @@ class TsneGMM(BasicCluster):
     def _fit(self, x):
         # x(n, M)
         # print(x.shape)
-        x = self.tsne.fit_transform(x)
+        # print(x.shape)
+        if x.shape[1] != 1:
+            x = self.tsne.fit_transform(x)
         self.model.fit(x)
         # 拟合并返回所有数据的聚类结果
 
