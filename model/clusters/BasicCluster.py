@@ -10,6 +10,7 @@ import os
 import matplotlib.pyplot as plt
 # os.environ['OMP_NUM_THREADS'] = '1'
 import warnings
+
 warnings.filterwarnings('ignore', category=UserWarning, module='sklearn.cluster')
 import sklearn.manifold
 import sklearn.cluster
@@ -60,6 +61,14 @@ class BasicCluster:
         result = torch.tensor(result, device=self.device)
         return result
 
+    def _fit(self, x):
+        self.model.fit(x)
+        # 拟合并返回所有数据的聚类结果
+        # 获得原数据的聚类结果(M)
+        result = self.model.predict(x)
+        # print('model {} fitted'.format(self.model.__class__.__name__))
+        return result
+
     def fit(self, x):
         # x(n, M)
         # print(x.shape)
@@ -69,11 +78,11 @@ class BasicCluster:
                 x = x.view(x.shape[0], -1)
             self.device = x.device
             x = x.cpu().detach().numpy()
-        self.model.fit(x)
-        self.fitted = True
-        # 拟合并返回所有数据的聚类结果
+
+        result = self._fit(x)
+
         # 获得原数据的聚类结果(M)
-        result = self.model.predict(x)
+
         result = torch.tensor(result, device=self.device)
         self.cluster_result = result
         # print('model {} fitted'.format(self.model.__class__.__name__))
@@ -151,8 +160,6 @@ class DBSCAN(BasicCluster):
         return self.cluster_result
 
 
-
-
 # class HDBSCAN(BasicCluster):
 #     def __init__(self, num_features=None, device=0, min_cluster_size=5):
 #         model = sklearn.cluster.HDBSCAN(min_cluster_size=min_cluster_size)
@@ -163,7 +170,6 @@ class AgglomerativeClustering(BasicCluster):
     def __init__(self, num_features=None, device=0, n_clusters=10):
         model = sklearn.cluster.AgglomerativeClustering(n_clusters=n_clusters)
         super(AgglomerativeClustering, self).__init__(model, num_features)
-
 
 
 class SpectralClustering(BasicCluster):
@@ -183,26 +189,24 @@ class GMM(BasicCluster):
         model = GaussianMixture(n_components=n_clusters)
         super(GMM, self).__init__(model, num_features)
 
+
 class TsneGMM(BasicCluster):
     def __init__(self, num_features=None, device=0, n_clusters=10):
         model = GaussianMixture(n_components=n_clusters)
         super(TsneGMM, self).__init__(model, num_features)
         self.tsne = sklearn.manifold.TSNE(n_components=2)
 
-    def fit(self, x):
+    def _fit(self, x):
         # x(n, M)
         # print(x.shape)
-        self.num_features = x.shape[1]
-        if isinstance(x, torch.Tensor):
-            if len(x.shape) == 4:
-                x = x.view(x.shape[0], -1)
-            self.device = x.device
-            x = x.cpu().detach().numpy()
         x = self.tsne.fit_transform(x)
-        self.cluster_result = self.model.fit_predict(x)
-        self.fitted = True
+        self.model.fit(x)
+        # 拟合并返回所有数据的聚类结果
+
+        result = self.model.predict(x)
+
         # print('model {} fitted'.format(self.model.__class__.__name__))
-        return self.cluster_result
+        return result
 
 
 class TsneKMeans(BasicCluster):
@@ -211,17 +215,15 @@ class TsneKMeans(BasicCluster):
         super(TsneKMeans, self).__init__(model, num_features)
         self.tsne = sklearn.manifold.TSNE(n_components=2)
 
-    def fit(self, x):
+    def _fit(self, x):
         # x(n, M)
         # print(x.shape)
-        self.num_features = x.shape[1]
-        if isinstance(x, torch.Tensor):
-            if len(x.shape) == 4:
-                x = x.view(x.shape[0], -1)
-            self.device = x.device
-            x = x.cpu().detach().numpy()
+
         x = self.tsne.fit_transform(x)
-        self.cluster_result = self.model.fit_predict(x)
-        self.fitted = True
-        # print('model {} fitted'.format(self.model.__class__.__name__))
-        return self.cluster_result
+        result = self.model.fit(x)
+
+        # 拟合并返回所有数据的聚类结果
+
+        result = self.model.predict(x)
+
+        return result
