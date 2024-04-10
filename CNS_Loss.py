@@ -107,7 +107,7 @@ class CNSLosst(nn.Module):
         # alpha:(1 - 1/(max(y_star*(1-y)) - r + 1))
         # 计算alpha
         y_star = self._y_stars
-        print(y_star.min().item(), y_star.max().item(), y_star.mean().item())
+        # print(y_star.min().item(), y_star.max().item(), y_star.mean().item())
         # print('here')
         # 计算y_star*(1-y)
         y = self.y
@@ -117,15 +117,20 @@ class CNSLosst(nn.Module):
             # print('here')
         # print(y.shape, y_star.shape)
         y_star_1_y = y_star * (1 - y)
-        print(y_star_1_y.shape)
+        # print(y_star_1_y.shape)
         # 计算max(y_star*(1-y))
         max_y_star_1_y, _ = torch.max(y_star_1_y, dim=1)
+        # print(max_y_star_1_y.shape)
+        # print(max_y_star_1_y.min().item(), max_y_star_1_y.max().item(), max_y_star_1_y.mean().item())
         # 计算alpha
-        alpha = 1 - 1 / (
-            torch.max(max_y_star_1_y - self.r, torch.zeros_like(max_y_star_1_y) + 1))  # (n, 1), 0<=alpha<=1防止有负数出现
+        m = torch.max(max_y_star_1_y - self.r, torch.zeros_like(max_y_star_1_y))
+        # print(m.min().item(), m.max().item(), m.mean().item())
+        alpha = 2 * (1 - (1 / (m + 1))) # (n, 1), 0<=alpha<=1防止有负数出现
         # 整成(n)
+        # print(alpha.shape)
         if len(alpha.shape) == 2:
-            alpha = alpha.squeeze()
+            alpha = alpha.squeeze()#
+        alpha = torch.min(alpha, torch.ones_like(alpha))
         return alpha
 
     def forward(self, x, y, hi):
@@ -135,7 +140,7 @@ class CNSLosst(nn.Module):
         self.x = x
         y_star = self._y_stars
         # print(y_star, y_star.min().item(), y_star.max().item(), y_star.mean().item())
-        print(y_star.min().item(), y_star.max().item(), y_star.mean().item())
+        # print(y_star.min().item(), y_star.max().item(), y_star.mean().item())
         # alpha = self._alpha
         # 计算交叉熵损失
         cross_entropy_loss = self.loss(x, y)

@@ -135,20 +135,18 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.85):
             # indices = torch.where(sim_matrix > threshold) #abs()
 
             # 对每个超过阈值的向量对,去除特征值较小的向量
-            bar_it = tqdm(range(vec_i.shape[0]), desc=f'Clearing knowledge')
-            # bar_jt = tqdm(range(vec_j.shape[0]), desc=f'Class {all_classt
-            for ii in bar_it:
-                for jj in range(vec_j.shape[0]):
-                    # 如果余弦相似度超过阈值,将特征值较小的特征方向置为零向量
-                    if ii == 0 and jj == 0:
-                        continue
-                    if sim_matrix[ii, jj] > threshold:
-                        print(
-                            f'Similarity between class {all_classt[i]} direction {ii} and class {all_classt[j]} direction {jj}: {sim_matrix[ii, jj]}')
-                        if val_i[ii] < val_j[jj]:
-                            vec_i[ii] = torch.zeros_like(vec_i[ii])
-                        else:
-                            vec_j[jj] = torch.zeros_like(vec_j[jj])
+
+            indices = torch.where(sim_matrix > threshold)
+            # 对每个超过阈值的向量对,去除特征值较小的向量
+            for ii, jj in zip(*indices):
+                if ii == 0 and jj == 0:
+                    continue
+                print(
+                    f'Similarity between class {all_classt[i]} direction {ii} and class {all_classt[j]} direction {jj}: {sim_matrix[ii, jj]}')
+                if val_i[ii] < val_j[jj]:
+                    vec_i[ii] = torch.zeros_like(vec_i[ii])
+                else:
+                    vec_j[jj] = torch.zeros_like(vec_j[jj])
 
             # 更新字典中的向量
             vec_allt[all_classt[i]] = vec_i

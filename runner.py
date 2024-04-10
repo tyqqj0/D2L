@@ -13,9 +13,11 @@ all = ['--amp',
        '--run_name', 'show_ne',
        # '--exp_name', 'noisy_test'
        # 'run_name', '1',
-       '--exp_name', 'data_sim',
-       '--group_size', '200',
-       '--model', 'resnet50'
+       '--exp_name', 'cns_r1',
+       # '--group_size', '300',
+       '--plot_interval', '6',
+       '--model', 'resnet50',
+       '--knowledge_group_size', '300'
        ]
 
 parameters = [
@@ -36,7 +38,7 @@ parameters = [
     ['--noise_ratio', '0.9'],
     ['--noise_ratio', '1']
 ]
-for i in range(3):
+for i in range(2):
     for parameter in parameters:
         print(parameter + all)
         command = ['python', 'main.py'] + parameter + all
