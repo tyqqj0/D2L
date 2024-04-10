@@ -608,6 +608,10 @@ class ClusterBackwardEpoch(BaseEpoch):
             # 计算获取了几个类, 用unique去重
             next_layer_classes = torch.unique(cluster_labels_next).int().tolist()
 
+            # 显示聚类结果标签与原标签有多少一样
+            numttt = torch.sum(cluster_labels_next == logits_list['label'])
+            print(numttt)
+
             # 打印各获取了几个类
             # print('cluster_labels_next:', len(next_layer_classes))
 

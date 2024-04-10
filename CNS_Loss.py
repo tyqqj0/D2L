@@ -86,7 +86,7 @@ class CNSLosst(nn.Module):
         y_star = y_star.t()  # y_star: (n, k)
         # return y_star
 
-        return y_star
+        return abs(y_star)
 
     @property
     def _alpha(self):
@@ -118,6 +118,7 @@ class CNSLosst(nn.Module):
         self.y = y
         self.x = x
         y_star = self._y_stars
+        print(y_star, y_star.min(), y_star.max())
         # alpha = self._alpha
         # 计算交叉熵损失
         cross_entropy_loss = self.loss(x, y)

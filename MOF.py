@@ -7,6 +7,7 @@
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 
 # import os
@@ -134,7 +135,9 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.85):
             # indices = torch.where(sim_matrix > threshold) #abs()
 
             # 对每个超过阈值的向量对,去除特征值较小的向量
-            for ii in range(vec_i.shape[0]):
+            bar_it = tqdm(range(vec_i.shape[0]), desc=f'Class {all_classt[i]}')
+            # bar_jt = tqdm(range(vec_j.shape[0]), desc=f'Class {all_classt
+            for ii in bar_it:
                 for jj in range(vec_j.shape[0]):
                     # 如果余弦相似度超过阈值,将特征值较小的特征方向置为零向量
                     if ii == 0 and jj == 0:
