@@ -152,13 +152,15 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.45):
             vec_allt[all_classt[j]] = vec_j
 
     # 计算每个类还剩多少成分不为零
-    # 移除零向量及对应的特征值
-    for key in all_classt:
-        nonzero_idx = torch.norm(vec_allt[key], dim=1) != 0
-        vec_allt[key], val_allt[key] = vec_allt[key][nonzero_idx], val_allt[key][nonzero_idx]
+    # # 移除零向量及对应的特征值
+    # for key in all_classt:
+    #     nonzero_idx = torch.norm(vec_allt[key], dim=1) != 0
+    #     vec_allt[key], val_allt[key] = vec_allt[key][nonzero_idx], val_allt[key][nonzero_idx]
 
         # 计算每个类还剩多少成分不为零
-    num_components = {key: vec_allt[key].shape[0] for key in all_classt}
+    # num_components = {key: vec_allt[key].shape[0] for key in all_classt}
+
+    num_components = {key: (torch.sum(vec_allt[key] != 0, dim=1) != 0).sum().item() for key in all_classt}
     # print(num_components)
     print(num_components)
 

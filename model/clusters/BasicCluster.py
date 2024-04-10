@@ -5,6 +5,7 @@
 # @
 # @Aim
 import os
+from collections import defaultdict
 
 # import os
 import matplotlib.pyplot as plt
@@ -69,7 +70,7 @@ class BasicCluster:
         # print('model {} fitted'.format(self.model.__class__.__name__))
         return result
 
-    def fit(self, x1):
+    def fit(self, x1, labels=None):
         # x(n, M)
         # print(x.shape)
         x = x1
@@ -80,14 +81,29 @@ class BasicCluster:
             self.device = x.device
             x = x.cpu().detach().numpy()
 
-        result = self._fit(x)
+        cluster_labels = self._fit(x)
 
-        # 获得原数据的聚类结果(M)
+        if labels is not None:
+            # 创建一个字典,用于存储每个聚类中出现次数最多的原始标签
+            label_count = defaultdict(lambda: defaultdict(int))
+            for cluster_label, original_label in zip(cluster_labels, labels):
+                label_count[cluster_label][original_label] += 1
 
-        result = torch.tensor(result, device=self.device)
-        self.cluster_result = result
-        # print('model {} fitted'.format(self.model.__class__.__name__))
-        return result
+            # 将每个聚类映射到出现次数最多的原始标签
+            label_map = {}
+            for cluster_label, count_dict in label_count.items():
+                label_map[cluster_label] = max(count_dict, key=count_dict.get)
+
+            # 将聚类结果映射到出现次数最多的原始标签
+            mapped_labels = [label_map[cluster_label] for cluster_label in cluster_labels]
+            mapped_labels = torch.tensor(mapped_labels, device=self.device)
+            self.cluster_result = mapped_labels
+        else:
+            cluster_labels = torch.tensor(cluster_labels, device=self.device)
+            self.cluster_result = cluster_labels
+
+            # print('model {} fitted'.format(self.model.__class__.__name__))
+        return self.cluster_result
 
     # 设置全局的保存装饰器
     @staticmethod

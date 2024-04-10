@@ -534,7 +534,8 @@ class PCAFindEpoch(BaseEpoch):
 
 
 class ClusterBackwardEpoch(BaseEpoch):
-    def __init__(self, model, loader, cluster_model, device, num_class=10, group_size=15, interval=1, bar=True):
+    def __init__(self, model, loader, criterion, cluster_model, device, num_class=10, group_size=15, interval=1,
+                 bar=True):
         super(ClusterBackwardEpoch, self).__init__('Cluster', model, loader, device, interval, bar)
         self.num_class = num_class
         self.group_size = group_size
@@ -558,6 +559,7 @@ class ClusterBackwardEpoch(BaseEpoch):
         else:
             raise ValueError('Unknown cluster model')
         print(self.cluster_model)
+        self.criterion = criterion
 
     def _get_logits(self, epoch):
         if self.group_size < 2:
@@ -600,7 +602,7 @@ class ClusterBackwardEpoch(BaseEpoch):
             print(layer, next_layer)
             # print(logits_list[next_layer].shape)
             # 对最后一层聚类
-            cluster_labels_next = self.cluster_model.fit(logits_list[next_layer])
+            cluster_labels_next = self.cluster_model.fit(logits_list[next_layer], logits_list['label'])
 
             # 计算获取了几个类, 用unique去重
             next_layer_classes = torch.unique(cluster_labels_next).int().tolist()
@@ -651,34 +653,42 @@ class ClusterBackwardEpoch(BaseEpoch):
             corrcetv = bkc(vec_allt, val_allt, next_layer_classes)
 
             # 计算各类修正后成分与数据的相似度
-            for next_label in next_layer_classes:
-                vec = corrcetv[next_label]  # (num, M)
-                # print(logits_list[layer].shape)
+            if kwargs['check']:
+                for next_label in next_layer_classes:
+                    vec = corrcetv[next_label]  # (num, M)
+                    # print(logits_list[layer].shape)
 
-                datatt = logits_list[layer][cluster_labels_next == next_label, :]
-                datatt = datatt.view(datatt.shape[0], -1)
-                # vec = vec / torch.norm(vec, dim=1, keepdim=True)
-                datatt = datatt / torch.norm(datatt, dim=1, keepdim=True)
-                # print(torch.norm(datatt, dim=1).shape)
-                # datatt = (datatt - datatt.mean(dim=1, keepdim=True)) / datatt.std(dim=1, keepdim=True)
-                # vec = (vec - vec.mean(dim=1, keepdim=True)) / vec.std(dim=1, keepdim=True)
-                # print("logits_list[layer].shape:", logits_list[layer].shape)
-                # print("cluster_labels_next.shape:", cluster_labels_next.shape)
-                # print("datatt.shape:", datatt.shape)
-                # print("vec.shape:", vec.shape)
+                    datatt = logits_list[layer][cluster_labels_next == next_label, :]
+                    datatt = datatt.view(datatt.shape[0], -1)
+                    # vec = vec / torch.norm(vec, dim=1, keepdim=True)
+                    datatt = datatt / torch.norm(datatt, dim=1, keepdim=True)
+                    # print(torch.norm(datatt, dim=1).shape)
+                    # datatt = (datatt - datatt.mean(dim=1, keepdim=True)) / datatt.std(dim=1, keepdim=True)
+                    # vec = (vec - vec.mean(dim=1, keepdim=True)) / vec.std(dim=1, keepdim=True)
+                    # print("logits_list[layer].shape:", logits_list[layer].shape)
+                    # print("cluster_labels_next.shape:", cluster_labels_next.shape)
+                    # print("datatt.shape:", datatt.shape)
+                    # print("vec.shape:", vec.shape)
 
-                # 计算相似程度
-                corrst = torch.matmul(datatt, vec.T)  # (n, num)
-                corrst = torch.max(abs(corrst), dim=1)[0]  # (n)
+                    # 计算相似程度
+                    corrst = torch.matmul(datatt, vec.T)  # (n, num)
+                    corrst = torch.max(abs(corrst), dim=1)[0]  # (n)
 
-                # 计算 datatt 和 vec 的模
-                # datatt_norm = torch.norm(datatt, dim=1, keepdim=True)
-                # vec_norm = torch.norm(vec, dim=1, keepdim=True)
-                #
-                # # 除以模进行归一化
-                # corrst = corrst / (datatt_norm * vec_norm.t())
+                    # 计算 datatt 和 vec 的模
+                    # datatt_norm = torch.norm(datatt, dim=1, keepdim=True)
+                    # vec_norm = torch.norm(vec, dim=1, keepdim=True)
+                    #
+                    # # 除以模进行归一化
+                    # corrst = corrst / (datatt_norm * vec_norm.t())
 
-                print(next_label, corrst)
+                    print(next_label, corrst)
+
+            # 将corrcetv转换为tensor
+            cn = torch.tensor([corrcetv[key] for key in corrcetv.keys()])
+
+        self.criterion.set_cn(cn)
+
+        return cn
 
 
 def plot_kmp(epoch, logits_list, model_name='', noise_ratio=0.0, folder='kn_map'):

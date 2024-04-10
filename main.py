@@ -16,6 +16,7 @@ from torch.cuda.amp import GradScaler
 import utils.arg.parser
 from epochs import TrainEpoch, ValEpoch, LIDComputeEpoch, NEComputeEpoch, ExpressionSaveEpoch, PCACorrectEpoch, \
     BaseEpoch, plot_kmp, ClusterBackwardEpoch
+from CNS_Loss import CNSLosst
 
 from loss import lid_paced_loss
 from model.resnet18 import ResNet18FeatureExtractor
@@ -27,6 +28,7 @@ from utils.text import text_in_box
 
 plot_layer_all = logbox.log_artifact_autott(plot_layers_seaborn)
 dict_to_json = logbox.log_artifact_autott(dict_to_json)
+
 
 # os.environ['OMP_NUM_THREADS'] = '1'
 
@@ -55,9 +57,10 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
                                       group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
     pca_compute_epoch = PCACorrectEpoch(model, train_loader, device, num_class=args.num_classes,
                                         group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)
-    cluster_backward_epoch = ClusterBackwardEpoch(model, train_loader, args.cluster_model, device,
+    cluster_backward_epoch = ClusterBackwardEpoch(model, train_loader, criterion, args.cluster_model, device,
                                                   num_class=args.num_classes,
-                                                  group_size=args.knowledge_group_size, interval=args.plot_interval, bar=False)#
+                                                  group_size=args.knowledge_group_size, interval=args.plot_interval,
+                                                  bar=False)  #
 
     for epoch in range(args.epochs):
         timert._start()
@@ -74,7 +77,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
         # expression_save_epoch.run(epoch + 1, val_accuracy=val_accuracy)
         # ne_dict = ne_compute_epoch.run(epoch + 1)
         # pca_compute_epoch.run(epoch + 1)
-        cluster_backward_epoch.run(epoch + 1)
+        cluster_backward_epoch.run(epoch + 1, check=False)
 
         # if args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
         #     criterion.update(knowes, epoch + 1)
@@ -190,6 +193,8 @@ def main():
     elif args.lossfn == 'l2d' or args.lossfn == 'lid_paced_loss':
         # raise NotImplementedError('lid loss 还未实现！')
         criterion = lid_paced_loss(max_epochs=args.epochs, beta1=0.1, beta2=1.0)
+    elif args.lossfn == 'cns':
+        criterion = CNSLosst(classs=args.num_classes, r=0.01, loss='cross_entropy')
     else:
         raise NotImplementedError('loss function not implemented!')
     # 设置学习率调整策略
