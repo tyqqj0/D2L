@@ -36,7 +36,7 @@ dict_to_json = logbox.log_artifact_autott(dict_to_json)
 # logbox = box()
 
 
-def train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox):
+def train(model, train_loader, test_loader, optimizer, criterion, criterion_val, scheduler, device, args, logbox):
     # 实例化epoch
     # 通过BaseEpoch设置最大epoch数
     stop_count = 0
@@ -45,7 +45,7 @@ def train(model, train_loader, test_loader, optimizer, criterion, scheduler, dev
     # cluster_model = KMeans(n_clusters=args.num_classes)
     train_epoch = TrainEpoch(model, train_loader, optimizer, criterion, device,
                              scaler=GradScaler() if args.amp else None)
-    val_epoch = ValEpoch(model, test_loader, criterion, device, plot_wrong=args.plot_wrong,
+    val_epoch = ValEpoch(model, test_loader, criterion_val, device, plot_wrong=args.plot_wrong,
                          replace_label=(args.dataset != 'MNIST'))
     lid_compute_epoch = LIDComputeEpoch(model, train_loader, device, num_class=args.num_classes,
                                         group_size=args.knowledge_group_size, interval=args.plot_interval)
@@ -197,13 +197,14 @@ def main():
         criterion = CNSLosst(classs=args.num_classes, r=0.01, loss='cross_entropy')
     else:
         raise NotImplementedError('loss function not implemented!')
+    criterion_val = nn.CrossEntropyLoss()
     # 设置学习率调整策略
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[60, 120, 160], gamma=0.2)
 
     # mlflow.start_run(run_name=args.run_name)
     # 训练
     with logbox:
-        train(model, train_loader, test_loader, optimizer, criterion, scheduler, device, args, logbox)
+        train(model, train_loader, test_loader, optimizer, criterion, criterion_val ,scheduler, device, args, logbox)
     # mlflow.end_run()
 
 

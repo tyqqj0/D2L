@@ -7,7 +7,7 @@
       "help": "dataset = [MNIST/CIFAR10/CIFAR100/SVHN]"
     },
     "noise_ratio": {
-      "default": 0,
+      "default": 0.5,
       "type": "float",
       "help": "corruption ratio, should be less than 1"
     },
@@ -102,12 +102,12 @@
       "help": "plot interval"
     },
     "lossfn": {
-      "default": "ce",
+      "default": "cns",
       "type": "str",
       "help": "loss function, l2d, ce"
     },
     "knowledge_group_size": {
-      "default": 25,
+      "default": 300,
       "type": "int",
       "help": "knowledge group size"
     },

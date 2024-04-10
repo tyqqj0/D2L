@@ -58,7 +58,7 @@ import torch
 #     return corr_matrix
 
 
-def mof(x1, label1, num=10):
+def mof(x1, label1, num=15):
     x = x1.clone()
     label = label1.clone()
     if len(x.shape) == 4:
@@ -103,7 +103,7 @@ def mof(x1, label1, num=10):
     return eig_vec, eig_val
 
 
-def bkc(vec_allt, val_allt, all_classt, threshold=0.45):
+def bkc(vec_allt, val_allt, all_classt, threshold=0.85):
     # vec_allt(num, M), all_classt(n)
     # 对主要方向进行清理，去除不同类别的与其他类别过度相似的次要方向
 

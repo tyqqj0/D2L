@@ -96,8 +96,9 @@ class TrainEpoch(BaseEpoch):
             self.optimizer.zero_grad()
             if self.scaler is not None:
                 with autocast():
-                    outputs, _ = self.model(inputs)
-                    loss = self.criterion(outputs, targets)
+                    outputs, logits = self.model(inputs)
+                    l = logits['layer4']
+                    loss = self.criterion(outputs, targets, hi=l)
                 self.scaler.scale(loss).backward()
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
@@ -644,7 +645,7 @@ class ClusterBackwardEpoch(BaseEpoch):
             for next_label in tqdm(next_layer_classes, desc='MOF'):
                 # next_label = next_label.int()
                 vecs_this, val_this = mof(cluster_per_label[next_label][0], cluster_per_label[next_label][1],
-                                          num=len(next_layer_classes))
+                                          num=len(next_layer_classes) + 5)
                 # print(vecs_this.shape)
                 # 此时每个vec_this是一个特征向量
                 vec_allt[next_label] = vecs_this
@@ -684,7 +685,15 @@ class ClusterBackwardEpoch(BaseEpoch):
                     print(next_label, corrst)
 
             # 将corrcetv转换为tensor
-            cn = torch.tensor([corrcetv[key] for key in corrcetv.keys()])
+            # cn = torch.tensor([corrcetv[key] for key in corrcetv.keys()])
+            # 获取字典的键列表
+            keys = list(corrcetv.keys())
+
+            # 使用列表推导式获取字典的值列表
+            cn_list = [corrcetv[key] for key in keys]
+
+            # 使用torch.stack将值列表拼接成一个张量
+            cn = torch.stack(cn_list)
 
         self.criterion.set_cn(cn)
 
