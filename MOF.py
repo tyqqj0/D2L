@@ -135,7 +135,7 @@ def bkc(vec_allt, val_allt, all_classt, threshold=0.85):
             # indices = torch.where(sim_matrix > threshold) #abs()
 
             # 对每个超过阈值的向量对,去除特征值较小的向量
-            bar_it = tqdm(range(vec_i.shape[0]), desc=f'Class {all_classt[i]}')
+            bar_it = tqdm(range(vec_i.shape[0]), desc=f'Clearing knowledge')
             # bar_jt = tqdm(range(vec_j.shape[0]), desc=f'Class {all_classt
             for ii in bar_it:
                 for jj in range(vec_j.shape[0]):

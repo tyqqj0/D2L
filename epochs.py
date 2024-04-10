@@ -609,8 +609,12 @@ class ClusterBackwardEpoch(BaseEpoch):
             next_layer_classes = torch.unique(cluster_labels_next).int().tolist()
 
             # 显示聚类结果标签与原标签有多少一样
-            numttt = torch.sum(cluster_labels_next == logits_list['label'])
-            print(numttt)
+            # if cluster_labels_next.shape != logits_list['label'].shape:
+            #     # 如果形状不同,可以考虑对其中一个进行调整
+            #     # 例如,如果cluster_labels_next是一维张量,而logits_list['label']是二维张量,可以将cluster_labels_next扩展为二维张量
+            #     cluster_labels_next1 = cluster_labels_next.view(-1, 1)
+            # numttt = torch.sum(cluster_labels_next1 == logits_list['label'])
+            # print(numttt, cluster_labels_next1.shape, logits_list['label'].shape)
 
             # 打印各获取了几个类
             # print('cluster_labels_next:', len(next_layer_classes))
